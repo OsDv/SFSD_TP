@@ -8,9 +8,16 @@
  * declaration of types and constants
  */
 // structure contain student personal informations
-extern const int MAX_NAME_SIZE;
-extern const int MAX_CITY_NAME;
-extern const int DATE_SIZE;
+
+#define MAX_NAME_SIZE  20
+#define MAX_CITY_NAME  20
+#define DATE_SIZE 8
+#define StudentSize  sizeof(Student)
+#define MAX_RECORDS  100
+#define TOF_blockSize  sizeof(TOF_Block)
+#define TOF_HEADER_SIZE  sizeof(TOF_Header )
+
+
 typedef struct {
 	int id;
 	char firstName[MAX_NAME_SIZE];
@@ -18,25 +25,28 @@ typedef struct {
 	char birthDate[DATE_SIZE];
 	char birthCity[MAX_CITY_NAME];
 } Student;
-extern const int StudentSize;
-extern const int MAX_RECORDS;
+
 
 typedef struct {
 	Student data[MAX_RECORDS];
 	bool del[MAX_RECORDS];
-	int NB;
+	int NR;
 	int ND;
 } TOF_Block,TOF_Buffer;
-extern const int TOF_blockSize;
 
 typedef struct {
 	int NB;// number of blocks in the file
 	int NR;//number of records in the file
 	int ND;// number of deleted records in the file
 } TOF_Header;
-extern const int TOF_HEADER_SIZE;
 
-
+#define MAX_NAME_SIZE  20
+#define MAX_CITY_NAME  20
+#define DATE_SIZE 8
+#define StudentSize  sizeof(Student)
+#define MAX_RECORDS  100
+#define TOF_blockSize  sizeof(TOF_Block)
+#define TOF_HEADER_SIZE  sizeof(TOF_Header )
 
 
 #endif
