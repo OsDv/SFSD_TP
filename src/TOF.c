@@ -52,57 +52,18 @@ int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *studen
             }            
 
         } else if(key < buffer.data[0].id){
-
-        } else {
-
-        }
-	}
-}
-
-/*bool searchElement(FILE *f , int key , bool *found , int *n_block,int *n_element , elm_t *e){
-    FILE_HEADER header;
-    BUFFER buffer;
-    getHeader(f,&header);
-    int i,j=0,sup,inf;
-    sup = header.N_blk ;
-    inf = 0;
-    bool stop = false ;
-    (*found) = false;
-    while (!stop){
-        i = (sup + inf ) / 2;
-        readBlock(f,i,&buffer);
-
-        //  the element should be found in the block number i
-        if (!(keyCompare(key,buffer.data[0].key) == SMALLER) && !(keyCompare(key , buffer.data[buffer.NE-1].key)==GREATER)){
-            // do a binary search inside the block
-            inf = 0;
-            sup = buffer.NE-1;
-            while (!stop){
-                j = (sup + inf )/2;
-                if (keyCompare(key , buffer.data[j].key) == EQUAL){
-                    (*found) = true;
-                    if (e) (*e) = buffer.data[j];
-                    stop = true;
-                } else {
-                    if (keyCompare(key , buffer.data[j].key) == SMALLER) sup = j-1;
-                    else inf = j+1;
-                }
-                if (inf > sup) stop = false;
-            }
-        } else {
             // the element should be found in the inferior half of the file
-            if (keyCompare(key,buffer.data[0].key) == SMALLER){
                 sup = i-1;
-            } else {
+        } else {
             // the element should be found in the superior half of the file
-                inf = i + 1;
-            }
+            inf = i + 1;
         }
         // search ended and element not founded should be inserted in block i index j
         if (inf > sup) stop = true ;
-    }
-
+	}
 }
+
+
 
 InsertionStatus insertElement(FILE *f , elm_t e){
     int i,j;
