@@ -1,4 +1,4 @@
-#include <TOF.h>
+#include "C:\Users\adlen\OneDrive\Documents\GitHub\SFSD_TP\include\TOF.h"
 
 
 
@@ -22,7 +22,7 @@ int TOF_writeBlock(FILE * f , int n , TOF_Buffer *buffer){
 	fwrite(buffer ,TOF_blockSize,1, f);
 }
 
-int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *student){
+int TOF_search(FILE *f , int key , bool *found , int *i , int *j , Student *student){
 	TOF_Header header;
 	TOF_Buffer buffer;
 	TOF_getHeader(f,&header);
@@ -32,21 +32,21 @@ int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *studen
 	bool stop = false;
 	(*found) = false;
 	while(!stop){
-		i = (sup + inf )/2;
-		TOF_readBlock(f,i,&buffer);
+		*i = (sup + inf )/2;
+		TOF_readBlock(f,*i,&buffer);
 		if (key >= buffer.data[0].id && key <= buffer.data[buffer.NR].id){ 
             //  the element should be found in the block number i
             inf = 0;
             sup = buffer.NR -1;
             while (!stop){
-                j = (sup + inf )/2;
-                if (key == buffer.data[j].id){
+                *j = (sup + inf )/2;
+                if (key == buffer.data[*j].id && !buffer.del[*j]){    // + deleted student
                     (*found) = true;
-                    if (student) (*student ) = buffer.data[j];
+                    if (student) (*student ) = buffer.data[*j];  
                     stop = true;
                 } else {
-                    if (key , buffer.data[j].id) sup = j-1;
-                    else inf = j+1;
+                    if (key , buffer.data[*j].id) sup = *j-1;
+                    else inf = *j+1;
                 }
                 if (inf > sup) stop = false;
             }            
@@ -68,42 +68,57 @@ int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *studen
 InsertionStatus insertElement(FILE *f , elm_t e){
     int i,j;
     bool found;
-    BUFFER buffer;
-    elm_t tmp;
-    FILE_HEADER header;
-    getHeader(f,&header);
-    searchElement(f,e.key,&found,&i,&j,NULL);
-    if (found) return ELEMENT_EXISTS;
-    readBlock(f,i,&buffer);
+    TOF_Buffer buffer,nextBuffer;
+    Student tmp;
+    TOF_Header header;
+    TOF_getHeader(f,&header);
+    TOF_search(f,e.id,&found,&i,&j,NULL);
+    if (found) return -1;   //Already exist
+    TOF_readBlock(f,i,&buffer);
     bool stop = false;
     while (!stop){
         // element should be inserted in the bloc i and do only internal shifts
-        if ((buffer.NE - buffer.ND)< MAX_ELEMENTS_BLOCK_TOF){
+        if ((buffer.NR - buffer.ND+1)< MAX_RECORDS*LOADING_FACTOR){
+            buffer.NR++;
             while (!stop){
-                tmp = buffer.data[j+1];
+                tmp = buffer.data[j];
                 buffer.data[j] = e;
-                if (buffer.del[j] || j>buffer.NE) {
+                if (buffer.del[j] || j>=buffer.NR) {
                     stop = true;
                     if (buffer.del[j]) {
                         buffer.ND--;
-                        header.N_del--;
+                        buffer.NR--;
+                        header.ND--;
                         buffer.del[j]=false;
-                    } else buffer.NE++;
+                    }
                 }
-            }
-        } else {
-            // shift all block elements and go to the next block
-            for (j ;j<MAX_ELEMENTS_BLOCK_TOF;j++){
-                tmp = buffer.data[j];
-                buffer.data[j] = e;
+                j++;
                 e=tmp;
             }
-            i=0;
-        }
-        writeBlock(f,i++,&buffer);
-        if (i>header.N_blk) header.N_blk++;
-    }
-    setHeader(f,&header);
-    return INSERTION_SUCCESFUL;
+         } else {
+            
+            int nextBlockIndex = i + 1;
 
-}*/
+            // If the next block does not exist create a new block
+            if (nextBlockIndex >= header.NB) {
+                //---allocate block----\\ 
+                header.NB++; 
+            } else {
+                TOF_readBlock(f, nextBlockIndex, &nextBuffer);
+            }
+
+            nextBuffer.data[0] = buffer.data[MAX_RECORDS - 1];
+            nextBuffer.NR++;
+            buffer.NR--;
+            TOF_writeBlock(f, i, &buffer);
+            TOF_writeBlock(f, nextBlockIndex, &nextBuffer); 
+            i = nextBlockIndex;
+            j = 0;
+            TOF_setHeader(f, &header);
+        }
+    }
+
+   
+    TOF_setHeader(f, &header);
+    return 0; // Successful insertion
+}
