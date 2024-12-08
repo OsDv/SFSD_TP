@@ -52,15 +52,20 @@ int TOF_search(FILE *f , int key , bool *found , int *i , int *j , Student *stud
             }            
 
         } else if(key < buffer.data[0].id){
-
+            // the element should be found in the inferior half of the file
+                sup = i-1;
         } else {
-
+            // the element should be found in the superior half of the file
+            inf = i + 1;
         }
+        // search ended and element not founded should be inserted in block i index j
+        if (inf > sup) stop = true ;
 	}
 }
 
 
-int insertElement(FILE *f , Student e){
+
+InsertionStatus insertElement(FILE *f , elm_t e){
     int i,j;
     bool found;
     TOF_Buffer buffer,nextBuffer;
@@ -116,9 +121,4 @@ int insertElement(FILE *f , Student e){
    
     TOF_setHeader(f, &header);
     return 0; // Successful insertion
-}
-
-int main ()
-{
-
 }

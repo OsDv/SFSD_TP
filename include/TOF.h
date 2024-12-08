@@ -40,13 +40,7 @@ typedef struct {
 	int ND;// number of deleted records in the file
 } TOF_Header;
 
-#define MAX_NAME_SIZE  20
-#define MAX_CITY_NAME  20
-#define DATE_SIZE 8
-#define StudentSize  sizeof(Student)
-#define MAX_RECORDS  100
-#define TOF_blockSize  sizeof(TOF_Block)
-#define TOF_HEADER_SIZE  sizeof(TOF_Header )
+
 
 /*int TOF_setHeader(FILE *f , TOF_Header *header);
 
