@@ -17,7 +17,7 @@ int TOVS_open(const char *name , TOVS_FILE *file , char mode){
     switch (mode)
     {
     case 'n':
-    file->file= fopen(name,"wb");
+    file->file= fopen(name,"wb+");
     file->header.NB=0;
     file->header.NC=0;
         break;
@@ -43,19 +43,41 @@ int TOVS_close(TOVS_FILE *file){
     fclose(file->file);
     file->file=NULL;
 }
-
+/*
 int TOVS_readBlock(TOVS_FILE *f, int n , TOVS_Block *buffer) {
 	fseek(f->file , TOVS_HEADER_SIZE+TOVS_BLOCK_SIZE*(n-1) , SEEK_SET);
 	fread(buffer ,TOVS_BLOCK_SIZE , 1 , f->file); 
+    printf("Reading Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
     NUMBER_OF_READS++;
 }
 
 int TOVS_writeBlock(TOVS_FILE * f , int n , TOVS_Block *buffer){
 	fseek(f->file ,  TOVS_HEADER_SIZE+TOVS_BLOCK_SIZE*(n-1), SEEK_SET);
 	fwrite(buffer ,TOVS_BLOCK_SIZE,1, f->file);
+    printf("write Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
+
     NUMBER_OF_WRITES++;
+}*/
+int TOVS_writeBlock(TOVS_FILE * f , int n , TOVS_Block *buffer){
+    long pos = TOVS_HEADER_SIZE + TOVS_BLOCK_SIZE * (n - 1);
+    // printf("Writing Block %d at position %ld: %.*s\n", n, pos, MAX_CHARS_TOVS, buffer->data); // Debug print
+    fseek(f->file, pos, SEEK_SET);
+    fwrite(buffer, TOVS_BLOCK_SIZE, 1, f->file);
+    NUMBER_OF_WRITES++;
+    // printf("After writing, position: %ld\n", ftell(f->file)); // Debug print
+    fflush(f->file);
 }
 
+int TOVS_readBlock(TOVS_FILE *f, int n , TOVS_Block *buffer) {
+    long pos = TOVS_HEADER_SIZE + TOVS_BLOCK_SIZE * (n - 1);
+    // printf("Reading Block %d at position %ld\n", n, pos); // Debug print
+    fseek(f->file, pos, SEEK_SET);
+    fread(buffer, TOVS_BLOCK_SIZE, 1, f->file);
+    // printf("Read Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
+    // printf("After reading, position: %ld\n", ftell(f->file)); // Debug print
+    NUMBER_OF_READS++;
+}
+/*
 int TOVS_getId(TOVS_Buffer buffer , int j){
     char key[TOVS_RECORDS_id_WIDTH+1];
     key[TOVS_RECORDS_id_WIDTH]=0;
@@ -68,11 +90,40 @@ int TOVS_getSize(TOVS_Buffer buffer , int j){
     size[TOVS_RECORDS_SIZE_WIDTH]=0;
     strncpy(size,&buffer.data[j],TOVS_RECORDS_SIZE_WIDTH);
     return atoi(size);
+}*/
+
+int TOVS_getId(TOVS_Buffer buffer, TOVS_Buffer buffer1 , int j){
+    char key[TOVS_RECORDS_id_WIDTH+1];
+    key[TOVS_RECORDS_id_WIDTH]=0;
+    if (j <= MAX_CHARS_TOVS - TOVS_RECORDS_id_WIDTH-TOVS_RECORDS_SIZE_WIDTH)strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);
+    else {
+        j=j+3;
+        for (int i=0;i<TOVS_RECORDS_id_WIDTH;i++){
+            if (j>=MAX_CHARS_TOVS){
+                buffer=buffer1;
+                j-=MAX_CHARS_TOVS;
+            }
+            key[i]=buffer.data[j++];
+        }
+    }
+    return atoi(key);
+}
+
+int TOVS_getSize(TOVS_Buffer buffer,TOVS_Buffer buffer1 , int j){
+    char size[TOVS_RECORDS_SIZE_WIDTH+1];
+    size[TOVS_RECORDS_SIZE_WIDTH]=0;
+    if(j<=MAX_CHARS_TOVS - TOVS_RECORDS_SIZE_WIDTH)strncpy(size,&buffer.data[j],TOVS_RECORDS_SIZE_WIDTH);
+    else {
+        int i,p;
+        for(i=0;(i+j)<MAX_CHARS_TOVS;i++) size[i]=buffer.data[j+i];
+        for(p=0;(p+i)<TOVS_RECORDS_SIZE_WIDTH;p++) size[i+p]=buffer1.data[p];        
+    }
+    return atoi(size);
 }
 
 int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
     TOVS_Header header;
-    TOVS_Buffer buffer;
+    TOVS_Buffer buffer,buffer1;
     int id,size;
     TOVS_getHeader(f,&header);
     bool stop = false;
@@ -81,21 +132,23 @@ int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
     (*j)=0;
     if (header.NB ==0) return 1; // the file is empty
     TOVS_readBlock(f,(*i),&buffer);
+    if (header.NB>=2) TOVS_readBlock(f,2,&buffer1);//second buffer used only in case an element id or size is splited between two blocks
     while (!stop){
-        if ((id=TOVS_getId(buffer,(*j)))==key){ // the element is found at position block i start on character j
+        if ((id=TOVS_getId(buffer,buffer1,(*j)))==key){ // the element is found at position block i start on character j
             (*found)=true;
             stop=true;
         } else {
             if (id > key){
                 stop = true; // element doesn't exists and it should be found in block i start on character j
             }else{
-                (*j)=(*j) + TOVS_getSize(buffer , (*j));
+                (*j)=(*j) + TOVS_getSize(buffer,buffer1 , (*j));
                 if ((*j)>=MAX_CHARS_TOVS) { 
                     while((*j)>=MAX_CHARS_TOVS){
                         (*j)=(*j)-MAX_CHARS_TOVS;
                         (*i)=(*i)+1;
                     }
-                    if ((*i) <=header.NB) TOVS_readBlock(f,(*i),&buffer);
+                    if ((*i) <=header.NB) buffer=buffer1; //TOVS_readBlock(f,(*i),&buffer);
+                    if ((*i)< header.NB) TOVS_readBlock(f,(*i)+1,&buffer1);
                 }
                 if (((*i) == header.NB && (*j)==header.NC) || (*i)>header.NB) stop = true; // reached end of file and the element not found 
             }
@@ -124,6 +177,11 @@ int TOVS_writeString(TOVS_FILE *f , char *src , int size , int block , int index
 
 
 }
+
+int TOVS_exractYear(char * src  , char *dest){
+    (*dest) = src[6];
+}
+
 enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     char id[TOVS_RECORDS_id_WIDTH+1]; // buffer to read id from string
     id[TOVS_RECORDS_id_WIDTH]=0; 
@@ -143,52 +201,81 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
                 if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
         else return INSERT_SUCCUSFUL;
     }
+    // if file not empty we check if element exits in the file if yes we dont insert duplicat
     TOVS_search(f,key,&found,&i,&j);
     if (found) return RECORD_EXISTS; // if element already inserted we dont insert the duplicat
-    int blockR=header.NB,indexR=header.NC-1;
-    int blockW=header.NB+((size+header.NC)/MAX_CHARS_TOVS) , indexW = ((indexR+size)%MAX_CHARS_TOVS)-1;
-    // update header values
-    header.NB=blockW;
-    header.NC=indexW+1;
+    
+    // we insert in middle of the file we need to shift
+    if (!(i==header.NB && j==header.NC)) TOVS_shiftRight(f,i,j,size);
+    // after shift or in case we dont need shift we write the record to the file
+    TOVS_writeString(f,src,size,i,j,&strudle);
+    // update header
+    header.NB=header.NB +((size+header.NC-1)/MAX_CHARS_TOVS);
+    header.NC= ((header.NC+size)%MAX_CHARS_TOVS);
     TOVS_setHeader(f,&header);
-    // two buffers to perform shift operation inter and intra blocks
-    TOVS_Buffer readBuffer,writeBuffer;
-    bool stop =((header.NB==i && header.NC ==j)|| i>header.NB);
-    while(!stop){
-        writeBuffer.data[indexW] = readBuffer.data[indexR];
 
-        if (indexR==j && blockR==i) stop=true;
-        indexR--;
-        indexW--;
-        if (indexR<0){
-            indexR=MAX_CHARS_TOVS-1;
-            blockR--;
-            TOVS_readBlock(f,blockR,&readBuffer);
+    if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
+    else return INSERT_SUCCUSFUL;
+}
+
+int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step){
+    if (step <=0) return 1;
+    TOVS_Header header;
+    TOVS_getHeader(f,&header);
+    TOVS_Buffer readBuffer , writeBuffer;
+
+    int rIndex = header.NC-1;
+    int rBlock = header.NB;
+    int wIndex =(header.NC + step -1) % MAX_CHARS_TOVS;
+    int wBlock =header.NB + (header.NC+step-1) / MAX_CHARS_TOVS;
+
+    TOVS_readBlock(f,rBlock,&readBuffer);
+    if (wBlock == header.NB) TOVS_readBlock(f,header.NB,&writeBuffer);
+    bool stop =false;
+    while (!stop){
+        if (rIndex <0){
+            rIndex=MAX_CHARS_TOVS-1;
+            rBlock--;
+            TOVS_readBlock(f,rBlock,&readBuffer);
         }
-        if (indexW<0){
-            indexR=MAX_CHARS_TOVS-1;
-            TOVS_writeBlock(f,blockW,&writeBuffer);
-            blockW--;
+        if (wIndex<0){
+            wIndex=MAX_CHARS_TOVS-1;
+            TOVS_writeBlock(f,wBlock,&writeBuffer);
+            wBlock--;
+            if (wBlock<=header.NB) TOVS_readBlock(f,wBlock,&writeBuffer);            
         }
+        if (rBlock==block && rIndex==offset) stop=true;
+        writeBuffer.data[wIndex--] = readBuffer.data[rIndex--];
     }
-        TOVS_writeBlock(f,blockW,&writeBuffer);        
-        // function to write the element after doing necessary shifts
-        TOVS_writeString(f,src,size,i,j,&strudle);
-        if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
-        else return INSERT_SUCCUSFUL;
+    TOVS_writeBlock(f,wBlock,&writeBuffer);
 
 }
+/*
 int TOVS_lineToString(char *src , char *dest , int *size_){
-    int n=strlen(src);
-    src[n-1]=0;
-    char size[TOVS_RECORDS_SIZE_WIDTH];
-    TOVS_sizeToString(n-2+TOVS_RECORDS_SIZE_WIDTH,size);
-    (*size_) = n-2+TOVS_RECORDS_SIZE_WIDTH;
-    for(int i=0;i<TOVS_RECORDS_SIZE_WIDTH;i++) dest[i] = size[i];
-    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) dest[i + TOVS_RECORDS_SIZE_WIDTH]=src[i];
-    for(int i=0;i<n-2-TOVS_RECORDS_id_WIDTH;i++) dest[i + TOVS_RECORDS_SIZE_WIDTH + TOVS_RECORDS_id_WIDTH ]=src[i + TOVS_RECORDS_id_WIDTH+1];
+    int size = strlen(src)-6;
+    if (src[size+5]=='\n'){
+        size--;
+        src[size+5]='\0';
+    }
+    (*size_) = size+3;
+    TOVS_sizeToString(size+3,dest);
+    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
+    for(int i=0;i<TOVS_YEAR_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
+    for(int i=0;i<size-6;i++) dest[i+TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+6];
+    
 }
+*/
+int TOVS_lineToString(char *src , char *dest , int *size_){
+    int j=0;
+    while(src[j]!='\n' && src[j]!='\0')j++;
+    j=j-4+3;// -4 ,0., +3 size width
 
+    (*size_)=j;
+    TOVS_sizeToString(j,dest);    
+    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
+    for(int i=0;i<TOVS_YEAR_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
+    for(int i=0;i<j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);i++) dest[i+TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH]=src[i+10];
+}
 
 enum LineStatus checkValidLine(char *line){
     int index=0;
@@ -199,9 +286,15 @@ enum LineStatus checkValidLine(char *line){
         index++;
     }
     // check if the separator ';' present after the the id else the id considired as invalid 
-    if (line[index++]!=';') return LINE_MISSING_ID;
+    if (line[index++]!=',') return LINE_MISSING_ID;
+    // read and check grade
+    int year,zero,n;
+    n=sscanf(&(line[index]),"%d.%d",&year,&zero);
+    if (year<1 || year>5 || zero!=0 || n!=2) return LINE_MISSING_YEAR;
     // check if the description string (skills) is not empty else the line considred invalide
-    if (line[index]=='\n') return LINE_MISSING_DESCRIPTION;
+
+    index+=4;
+    if (line[index]=='\n' || line[index]=='\0') return LINE_MISSING_DESCRIPTION;
     // the line passes all the test then it is valide 
     return VALID_LINE;
     
@@ -223,6 +316,8 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
     /*
     *   reading element varaibles
     */
+    int osama=0;
+
     int lineNumber=0;
     int size;
     char recordStr[MAX_LINE_SIZE+TOVS_RECORDS_SIZE_WIDTH];
@@ -250,6 +345,9 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
         totalWrite+=NUMBER_OF_WRITES;
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
+        printf("================================\n");
+        printFile((*dest));
+        printf("%d\n",osama++);
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
@@ -320,6 +418,18 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     
     
 
+}
+
+int printFile(TOVS_FILE f){
+    TOVS_Header header;
+    TOVS_getHeader(&f,&header);
+    TOVS_Buffer buffer;
+    printf("NB:%d\tNC:%d\n",header.NB,header.NC);
+    for (int i=1;i<=header.NB;i++){
+        TOVS_readBlock(&f,i,&buffer);
+        if(i<header.NB)printf("block %d : [%.*s]\n",i,MAX_CHARS_TOVS,buffer.data);
+        else printf("block %d : [%.*s]\n",i,header.NC,buffer.data);
+    }
 }
 /*
 0 *
