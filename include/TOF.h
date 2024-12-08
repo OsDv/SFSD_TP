@@ -19,6 +19,10 @@
 #define LOADING_FACTOR 0.60
 
 typedef struct {
+    FILE *file;
+    TOF_Header header;
+} TOF_FILE;
+typedef struct {
 	int id;
 	char firstName[MAX_NAME_SIZE];
 	char lastName[MAX_NAME_SIZE];
@@ -40,9 +44,15 @@ typedef struct {
 	int ND;// number of deleted records in the file
 } TOF_Header;
 
+enum TOF_LINE_STATUS {
+	EMPTY_LINE , MISSING_ID , MISSING_FIRST_NAME , MISSING_LAST_NAME , MISSING_BIRTH_DATE , MISSING_BIRTH_CITY
+};
+typedef struct {
+	FILE *f;
+	TOF_Header header;
+}
 
-
-/*int TOF_setHeader(FILE *f , TOF_Header *header);
+int TOF_setHeader(FILE *f , TOF_Header *header);
 
 int TOF_getHeader(FILE *f , TOF_Header *header);
 
@@ -55,7 +65,20 @@ int TOF_writeBlock(FILE * f , int n , TOF_Buffer *buffer);
 int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *student);
 
 
-*/
+
 
 
 #endif
+/*
+
+
+parcourir les line 
+transforme lines to rec"TOF_LineToRec" and indicate its status
+if ValidLine insert the rec in file "TOF_Insertion"
+ WriteLineToLog
+
+
+
+
+
+*/

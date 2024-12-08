@@ -122,3 +122,6 @@ InsertionStatus insertElement(FILE *f , elm_t e){
     TOF_setHeader(f, &header);
     return 0; // Successful insertion
 }
+
+
+int TOF_creatFile()
