@@ -16,7 +16,7 @@
 #define MAX_RECORDS  100
 #define TOF_blockSize  sizeof(TOF_Block)
 #define TOF_HEADER_SIZE  sizeof(TOF_Header )
-
+#define LOADING_FACTOR 0.60
 
 typedef struct {
 	int id;
@@ -41,6 +41,21 @@ typedef struct {
 } TOF_Header;
 
 
+
+/*int TOF_setHeader(FILE *f , TOF_Header *header);
+
+int TOF_getHeader(FILE *f , TOF_Header *header);
+
+
+int TOF_readBlock(FILE * f , int n , TOF_Buffer *buffer) ;
+
+int TOF_writeBlock(FILE * f , int n , TOF_Buffer *buffer);
+
+
+int TOF_search(FILE *f , int key , bool *found , int i , int j , Student *student);
+
+
+*/
 
 
 #endif
