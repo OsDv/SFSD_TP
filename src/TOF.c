@@ -1,6 +1,7 @@
 #include "C:\Users\adlen\OneDrive\Documents\GitHub\SFSD_TP\include\TOF.h"
 
-
+#define MAX_LINE_LENGTH 1024
+#define NUM_FIELDS 5
 
 
 int TOF_setHeader(FILE *f , TOF_Header *header){
@@ -123,5 +124,44 @@ InsertionStatus insertElement(FILE *f , elm_t e){
     return 0; // Successful insertion
 }
 
+void TOF_LineToRecord(char* line,Student* student,int *LineStatus);//insetion status enum
+{
 
-int TOF_creatFile()
+    char *fields[5];
+    int field_count = 0;
+    char *token = strtok(line, ",");
+    
+
+
+
+
+
+
+
+}
+
+int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile)
+{
+if ((dest==NULL)||(src==NULL)) return -1;
+    TOF_Header header={0,0,0};
+    TOF_setHeader(dest,&header);
+    TOF_Buffer buffer;
+    char line[MAX_LINE_SIZE];
+    enum INSERT_STATUS insertStatus;
+    int lineNumber=0;
+    enum TOF_LINE_STATUS LineStatus;
+    Student student;
+    // Skip the first line
+    fgets(line,MAX_LINE_SIZE, src);
+    while (fgets(line, MAX_LINE_SIZE, src))
+    {
+    TOF_LineToRecord(line,&student,&LineStatus);
+    if (LineStatus==VALID_LINE) {
+       insertStatus=insertElement(dest,student);
+        
+    TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
+
+    }
+
+}
+}
