@@ -6,6 +6,7 @@
         "itemUrl": "https://marketplace.visualstudio.com/items"
     },
     "files.associations": {
-        "cmath": "c"
+        "cmath": "c",
+        "tof.h": "c"
     }
 }
