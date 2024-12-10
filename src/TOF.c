@@ -39,6 +39,18 @@ int TOF_setHeader(TOF_FILE *f, TOF_Header *header){
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header){
 	(*header)=f->header;
 }
+#define MAX_LINE_LENGTH 1024
+#define NUM_FIELDS 5
+
+
+int TOF_setHeader(FILE *f , TOF_Header *header){
+	fseek(f , 0 , SEEK_SET );
+	fwrite(header , TOF_HEADER_SIZE , 1,f);
+}
+int TOF_getHeader(FILE *f , TOF_Header *header){
+	fseek(f , 0 , SEEK_SET);
+	fread(header , TOF_HEADER_SIZE , 1,f);
+}
 
 int TOF_readBlock(TOF_FILE *f, int n , TOF_Buffer *buffer) {
 	fseek(f->file , TOF_HEADER_SIZE+TOF_blockSize*(n-1) , SEEK_SET);
@@ -190,3 +202,44 @@ void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , 
 
 }
 int TOF_creatFile()
+void TOF_LineToRecord(char* line,Student* student,int *LineStatus);//insetion status enum
+{
+
+    char *fields[5];
+    int field_count = 0;
+    char *token = strtok(line, ",");
+    
+
+
+
+
+
+
+
+}
+
+int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile)
+{
+if ((dest==NULL)||(src==NULL)) return -1;
+    TOF_Header header={0,0,0};
+    TOF_setHeader(dest,&header);
+    TOF_Buffer buffer;
+    char line[MAX_LINE_SIZE];
+    enum INSERT_STATUS insertStatus;
+    int lineNumber=0;
+    enum TOF_LINE_STATUS LineStatus;
+    Student student;
+    // Skip the first line
+    fgets(line,MAX_LINE_SIZE, src);
+    while (fgets(line, MAX_LINE_SIZE, src))
+    {
+    TOF_LineToRecord(line,&student,&LineStatus);
+    if (LineStatus==VALID_LINE) {
+       insertStatus=insertElement(dest,student);
+        
+    TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
+
+    }
+
+}
+}
