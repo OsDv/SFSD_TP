@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 /*
  * declaration of types and constants
  */
@@ -13,12 +14,14 @@
 #define MAX_CITY_NAME  20
 #define DATE_SIZE 10
 #define StudentSize  sizeof(Student)
-#define DATE_SIZE 8
 #define MAX_RECORDS  100
 #define LOADING_FACTOR 0.60
 #define MAX_LINE_SIZE 250
 #define TOF_PRINT_LINE_NUMBER_WIDTH 3
 #define TOF_PRINT_N_RW_WIDTH 3
+#define NUM_FIELDS 5
+#define MAX_FIELD_LENGTH 64
+
 
 extern int TOF_NUMBER_OF_READS;
 extern int TOF_NUMBER_OF_WRITES;
@@ -70,10 +73,9 @@ int TOF_readBlock(TOF_FILE * f , int n , TOF_Buffer *buffer) ;
 int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer);
 
 
-int TOF_search(FILE *f , int key , bool *found , int* i , int* j , Student *student);
 int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *student);
 
-
+void TOF_LineToRecord(char* line,Student* student,enum INSERT_STATUS *LineStatus);
 
 
 
