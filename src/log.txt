@@ -9513,7 +9513,8 @@ number of blocks: 4165 block
 	2) INSERTION LOG :
 number of inserted records: 10494 
 number of strudle records: 4514
-number of duplicat not inserted: 0average records per block: 2.52
+number of duplicat not inserted: 0
+average records per block: 2.52
 	2) SOURCE LOG :
 number of valid lines: 9031
 number of empty lines: 0

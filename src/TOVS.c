@@ -4,8 +4,9 @@
 #include <windows.h>
 
 // global variables to count number of read/writes for each insertion/deletion
-int NUMBER_OF_READS;
-int NUMBER_OF_WRITES;
+int TOVS_NUMBER_OF_READS;
+int TOVS_NUMBER_OF_WRITES;
+
 int TOVS_setHeader(TOVS_FILE *file, TOVS_Header *header){
 	file->header = (*header);
 }
@@ -43,27 +44,13 @@ int TOVS_close(TOVS_FILE *file){
     fclose(file->file);
     file->file=NULL;
 }
-/*
-int TOVS_readBlock(TOVS_FILE *f, int n , TOVS_Block *buffer) {
-	fseek(f->file , TOVS_HEADER_SIZE+TOVS_BLOCK_SIZE*(n-1) , SEEK_SET);
-	fread(buffer ,TOVS_BLOCK_SIZE , 1 , f->file); 
-    printf("Reading Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
-    NUMBER_OF_READS++;
-}
 
-int TOVS_writeBlock(TOVS_FILE * f , int n , TOVS_Block *buffer){
-	fseek(f->file ,  TOVS_HEADER_SIZE+TOVS_BLOCK_SIZE*(n-1), SEEK_SET);
-	fwrite(buffer ,TOVS_BLOCK_SIZE,1, f->file);
-    printf("write Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
-
-    NUMBER_OF_WRITES++;
-}*/
 int TOVS_writeBlock(TOVS_FILE * f , int n , TOVS_Block *buffer){
     long pos = TOVS_HEADER_SIZE + TOVS_BLOCK_SIZE * (n - 1);
     // printf("Writing Block %d at position %ld: %.*s\n", n, pos, MAX_CHARS_TOVS, buffer->data); // Debug print
     fseek(f->file, pos, SEEK_SET);
     fwrite(buffer, TOVS_BLOCK_SIZE, 1, f->file);
-    NUMBER_OF_WRITES++;
+    TOVS_NUMBER_OF_WRITES++;
     // printf("After writing, position: %ld\n", ftell(f->file)); // Debug print
     fflush(f->file);
 }
@@ -75,22 +62,8 @@ int TOVS_readBlock(TOVS_FILE *f, int n , TOVS_Block *buffer) {
     fread(buffer, TOVS_BLOCK_SIZE, 1, f->file);
     // printf("Read Block %d: %.*s\n", n, MAX_CHARS_TOVS, buffer->data); // Debug print
     // printf("After reading, position: %ld\n", ftell(f->file)); // Debug print
-    NUMBER_OF_READS++;
+    TOVS_NUMBER_OF_READS++;
 }
-/*
-int TOVS_getId(TOVS_Buffer buffer , int j){
-    char key[TOVS_RECORDS_id_WIDTH+1];
-    key[TOVS_RECORDS_id_WIDTH]=0;
-    strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);
-    return atoi(key);
-}
-
-int TOVS_getSize(TOVS_Buffer buffer , int j){
-    char size[TOVS_RECORDS_SIZE_WIDTH+1];
-    size[TOVS_RECORDS_SIZE_WIDTH]=0;
-    strncpy(size,&buffer.data[j],TOVS_RECORDS_SIZE_WIDTH);
-    return atoi(size);
-}*/
 
 int TOVS_getId(TOVS_Buffer buffer, TOVS_Buffer buffer1 , int j){
     char key[TOVS_RECORDS_id_WIDTH+1];
@@ -254,21 +227,7 @@ int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step){
     TOVS_writeBlock(f,wBlock,&writeBuffer);
 
 }
-/*
-int TOVS_lineToString(char *src , char *dest , int *size_){
-    int size = strlen(src)-6;
-    if (src[size+5]=='\n'){
-        size--;
-        src[size+5]='\0';
-    }
-    (*size_) = size+3;
-    TOVS_sizeToString(size+3,dest);
-    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
-    for(int i=0;i<TOVS_YEAR_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
-    for(int i=0;i<size-6;i++) dest[i+TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+6];
-    
-}
-*/
+
 int TOVS_lineToString(char *src , char *dest , int *size_){
     int j=0;
     while(src[j]!='\n' && src[j]!='\0')j++;
@@ -337,16 +296,16 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
         lineNumber++;
         lineStatus= checkValidLine(line);
 //      initialise number read/write with 0 for each line read from source file
-        NUMBER_OF_READS=0;
-        NUMBER_OF_WRITES=0;
+        TOVS_NUMBER_OF_READS=0;
+        TOVS_NUMBER_OF_WRITES=0;
         // insert Valid Line
         if (lineStatus==VALID_LINE){
             TOVS_lineToString(line,recordStr,&size);
             insertStatus = TOVS_insert(dest,recordStr,size);
         }
         TOVS_writeLineToLog(logFile ,lineNumber ,insertStatus,lineStatus);
-        totalRead+=NUMBER_OF_READS;
-        totalWrite+=NUMBER_OF_WRITES;
+        totalRead+=TOVS_NUMBER_OF_READS;
+        totalWrite+=TOVS_NUMBER_OF_WRITES;
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
         printf("================================\n");
@@ -366,13 +325,13 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
         switch (insertS)
         {
         case INSERT_SUCCUSFUL:
-            fprintf(f,"+%*d:INSERTED:NON-STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,NUMBER_OF_READS,PRINT_N_RW_WIDTH,NUMBER_OF_WRITES);
+            fprintf(f,"+%*d:INSERTED:NON-STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
             break;
         case INSERT_SUCCUSFUL_STRUDLE:
-            fprintf(f,"+%*d:INSERTED:STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,NUMBER_OF_READS,PRINT_N_RW_WIDTH,NUMBER_OF_WRITES);
+            fprintf(f,"+%*d:INSERTED:STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
             break;
         case RECORD_EXISTS:
-            fprintf(f,"-%*d:NOT-INSERTED:DUPLICAT:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,NUMBER_OF_READS,PRINT_N_RW_WIDTH,NUMBER_OF_WRITES);
+            fprintf(f,"-%*d:NOT-INSERTED:DUPLICAT:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
             break;
         default:
             break;
@@ -381,15 +340,15 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
         switch (lineS)
         {
         case EMPTY_LINE:
-            fprintf(f,"*%*d:NOT-INSERTED:EMPTY-LINE:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,NUMBER_OF_READS,NUMBER_OF_WRITES);
+            fprintf(f,"*%*d:NOT-INSERTED:EMPTY-LINE:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
             break;
         
         case LINE_MISSING_DESCRIPTION   :
-            fprintf(f,"*%*d:NOT-INSERTED:MISSING-DESCRIPTION:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,NUMBER_OF_READS,NUMBER_OF_WRITES);            
+            fprintf(f,"*%*d:NOT-INSERTED:MISSING-DESCRIPTION:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);            
             break;
         
         case LINE_MISSING_ID:
-            fprintf(f,"*%*d:NOT-INSERTED:MISSING-ID:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,NUMBER_OF_READS,NUMBER_OF_WRITES);
+            fprintf(f,"*%*d:NOT-INSERTED:MISSING-ID:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
             break;
         
         default:

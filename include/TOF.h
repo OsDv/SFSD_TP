@@ -16,7 +16,7 @@
 #define LOADING_FACTOR 0.60
 #define TOF_PRINT_LINE_NUMBER_WIDTH 3
 #define TOF_PRINT_N_RW_WIDTH 3
-
+#define TOF_FILE_NAME "..\\result\\Students_Infos.TOF"
 extern int TOF_NUMBER_OF_READS;
 extern int TOF_NUMBER_OF_WRITES;
 
@@ -66,7 +66,8 @@ int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer);
 int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *student);
 
 
-
+int TOF_open(const char *name , TOF_FILE *file , char mode);
+int TOF_close(TOF_FILE *file);
 
 
 #endif

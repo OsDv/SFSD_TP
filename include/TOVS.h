@@ -11,7 +11,8 @@
 #define TOVS_YEAR_WIDTH 1
 #define PRINT_N_RW_WIDTH 5
 #define PRINT_LINE_NUMBER_WIDTH 5
-#define TOVS_FILE_NAME "StudentsSkills.tovs\0"
+#define TOVS_FILE_NAME "..\\result\\Students_Infos&Skills.tovs\0"
+#define TOVS_LOG_FILE "..\\result\\TOVS_LOG.txt\0"
 typedef struct {
     char data[MAX_CHARS_TOVS];
 } TOVS_Block,TOVS_Buffer;
