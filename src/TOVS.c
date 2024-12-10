@@ -207,11 +207,15 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     
     // we insert in middle of the file we need to shift
     if (!(i==header.NB && j==header.NC)) TOVS_shiftRight(f,i,j,size);
+    // printf("in inser=================\n");
+    // printFile(f);
     // after shift or in case we dont need shift we write the record to the file
     TOVS_writeString(f,src,size,i,j,&strudle);
     // update header
     header.NB=header.NB +((size+header.NC-1)/MAX_CHARS_TOVS);
-    header.NC= ((header.NC+size)%MAX_CHARS_TOVS);
+    // header.NC= ((header.NC+size)%MAX_CHARS_TOVS);
+    header.NC+=size;
+    if (header.NC>MAX_CHARS_TOVS) header.NC-=MAX_CHARS_TOVS;
     TOVS_setHeader(f,&header);
 
     if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
@@ -346,8 +350,10 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
         printf("================================\n");
-        printFile((*dest));
-        printf("%d\n",osama++);
+        if ((osama%1000)==0){
+            printFile((*dest));
+            printf("%d\n",osama++);
+        }
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
