@@ -33,9 +33,6 @@ int TOF_close(TOF_FILE *file){
     file->file=NULL;
 }
 
-int TOF_setHeader(TOF_FILE *f, TOF_Header *header){
-	(*header)=f->header;
-}
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header){
 	(*header)=f->header;
 }
@@ -43,10 +40,6 @@ int TOF_getHeader(TOF_FILE *f , TOF_Header *header){
 #define NUM_FIELDS 5
 
 
-int TOF_setHeader(FILE *f , TOF_Header *header){
-	fseek(f , 0 , SEEK_SET );
-	fwrite(header , TOF_HEADER_SIZE , 1,f);
-}
 int TOF_getHeader(FILE *f , TOF_Header *header){
 	fseek(f , 0 , SEEK_SET);
 	fread(header , TOF_HEADER_SIZE , 1,f);
@@ -142,13 +135,10 @@ enum INSERT_STATUS insertElement(TOF_FILE *f , Student e){
             int nextBlockIndex = i + 1;
 
             // If the next block does not exist create a new block
-            if (nextBlockIndex >= header.NB) {
-                //---allocate block----\\ 
-                header.NB++; 
-            } else {
-                TOF_readBlock(f, nextBlockIndex, &nextBuffer);
-            }
-
+            if (nextBlockIndex >= header.NB) header.NB++;  //---allocate block----\\ 
+               
+            
+            TOF_readBlock(f, nextBlockIndex, &nextBuffer);
             nextBuffer.data[0] = buffer.data[MAX_RECORDS - 1];
             nextBuffer.NR++;
             buffer.NR--;
@@ -162,7 +152,7 @@ enum INSERT_STATUS insertElement(TOF_FILE *f , Student e){
 
    
     TOF_setHeader(f, &header);
-    return INSERT_SUCCUSFUL; // Successful insertion
+    return INSERT_SUCCUSFUL; // Successful insertion  
 }
 
 void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum INSERT_STATUS insertS){{
@@ -201,19 +191,58 @@ void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , 
 }
 
 }
-int TOF_creatFile()
-void TOF_LineToRecord(char* line,Student* student,int *LineStatus);//insetion status enum
+
+//////////////////////////
+
+
+
+void parseLine(char *line, char fields[NUM_FIELDS][MAX_FIELD_LENGTH]) {
+    int field_index = 0;
+    int char_index = 0;
+    int i = 0;
+
+    while (line[i] != '\n' && line[i] != '\0') {
+        if (line[i] == ',') {
+            fields[field_index][char_index] = '\0'; // End the current field
+            field_index++;
+            char_index = 0;
+        } else {
+            fields[field_index][char_index++] = line[i];
+        }
+        i++;
+    }
+    fields[field_index][char_index] = '\0'; // End the last field
+}
+
+
+
+
+
+
+
+
+
+
+
+void TOF_LineToRecord(char* line,Student* student,enum INSERT_STATUS *LineStatus)
 {
-
-    char *fields[5];
-    int field_count = 0;
-    char *token = strtok(line, ",");
+   
+     char fields[NUM_FIELDS][MAX_FIELD_LENGTH];
+     parseLine(line,fields);
     
+        student->id=atoi(fields[0]);
+        strcpy(student->firstName,fields[1]);
+        strcpy(student->lastName,fields[2]);
+        strcpy(student->birthDate,fields[3]);
+        strcpy(student->birthCity,fields[4]);
 
-
-
-
-
+      if (strcmp(student->id,"")==0) (*LineStatus)=MISSING_ID;
+      if (strcmp(student->firstName,"")==0) (*LineStatus) = MISSING_FIRST_NAME;
+      if (strcmp(student->lastName,"")==0) (*LineStatus) = MISSING_LAST_NAME;
+      if (strcmp(student->birthDate,"")==0) (*LineStatus) = MISSING_BIRTH_DATE;
+      if (strcmp(student->birthCity,"")==0) (*LineStatus) = MISSING_BIRTH_CITY;
+      if(!(LineStatus==MISSING_ID||LineStatus==MISSING_FIRST_NAME||LineStatus==MISSING_LAST_NAME||LineStatus==MISSING_BIRTH_DATE||LineStatus==MISSING_BIRTH_CITY))
+      (*LineStatus)=VALID_LINE;
 
 
 }
@@ -233,13 +262,14 @@ if ((dest==NULL)||(src==NULL)) return -1;
     fgets(line,MAX_LINE_SIZE, src);
     while (fgets(line, MAX_LINE_SIZE, src))
     {
-    TOF_LineToRecord(line,&student,&LineStatus);
-    if (LineStatus==VALID_LINE) {
-       insertStatus=insertElement(dest,student);
-        
+    TOF_LineToRecord(line,&student,&LineStatus);  
+    insertStatus=insertElement(dest,student);
     TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
+
+    
 
     }
 
 }
-}
+
+
