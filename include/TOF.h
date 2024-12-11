@@ -23,7 +23,8 @@
 #define MAX_FIELD_LENGTH 64
 
 
-#define TOF_FILE_NAME "..\\result\\Students_Infos.TOF"
+#define TOF_FILE_NAME "..\\result\\Students_Infos.TOF\0"
+#define TOF_LOG_FILE "..\\result\\TOF_LOG.txt\0"
 extern int TOF_NUMBER_OF_READS;
 extern int TOF_NUMBER_OF_WRITES;
 
@@ -61,20 +62,15 @@ typedef struct {
     TOF_Header header;
 } TOF_FILE;
 int TOF_setHeader(TOF_FILE *f , TOF_Header *header);
-
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header);
-
-
 int TOF_readBlock(TOF_FILE * f , int n , TOF_Buffer *buffer) ;
-
 int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer);
-
-
 int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *student);
-
 void TOF_LineToRecord(char* line,Student* student,enum INSERT_STATUS *LineStatus);
-
-
+void parseLine(char *line, char fields[NUM_FIELDS][MAX_FIELD_LENGTH]);
+void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum INSERT_STATUS insertS);
+enum INSERT_STATUS insertElement(TOF_FILE *f , Student e);
+int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile);
 int TOF_open(const char *name , TOF_FILE *file , char mode);
 int TOF_close(TOF_FILE *file);
 

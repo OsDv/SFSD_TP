@@ -40,9 +40,8 @@ int TOF_getHeader(TOF_FILE *f , TOF_Header *header){
 #define NUM_FIELDS 5
 
 
-int TOF_getHeader(FILE *f , TOF_Header *header){
-	fseek(f , 0 , SEEK_SET);
-	fread(header , TOF_HEADER_SIZE , 1,f);
+int TOF_setHeader(TOF_FILE *f , TOF_Header *header){
+	(*header)=f->header;
 }
 
 int TOF_readBlock(TOF_FILE *f, int n , TOF_Buffer *buffer) {
@@ -155,7 +154,7 @@ enum INSERT_STATUS insertElement(TOF_FILE *f , Student e){
     return INSERT_SUCCUSFUL; // Successful insertion  
 }
 
-void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum INSERT_STATUS insertS){{
+void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum INSERT_STATUS insertS){
     if (insertS==INSERT_SUCCUSFUL){
         fprintf(f,"+%*d:VALIDE_LINE:INSERTED:%5dR %5dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
     } else {
@@ -190,7 +189,7 @@ void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , 
     }
 }
 
-}
+
 
 //////////////////////////
 
@@ -262,12 +261,9 @@ if ((dest==NULL)||(src==NULL)) return -1;
     fgets(line,MAX_LINE_SIZE, src);
     while (fgets(line, MAX_LINE_SIZE, src))
     {
-    TOF_LineToRecord(line,&student,&LineStatus);  
-    insertStatus=insertElement(dest,student);
-    TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
-
-    
-
+        TOF_LineToRecord(line,&student,&LineStatus);  
+        insertStatus=insertElement(dest,student);
+        TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
     }
 
 }
