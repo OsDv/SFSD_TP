@@ -53,10 +53,10 @@ typedef struct {
 } TOF_Header;
 #define TOF_HEADER_SIZE sizeof(TOF_Header)
 enum TOF_LINE_STATUS {
-	EMPTY_LINE , MISSING_ID , MISSING_FIRST_NAME , MISSING_LAST_NAME , MISSING_BIRTH_DATE , MISSING_BIRTH_CITY , VALID_LINE
+	TOF_EMPTY_LINE , TOF_MISSING_ID , TOF_MISSING_FIRST_NAME , TOF_MISSING_LAST_NAME , TOF_MISSING_BIRTH_DATE , TOF_MISSING_BIRTH_CITY , TOF_VALID_LINE
 };
 
-enum INSERT_STATUS {INSERT_SUCCUSFUL , RECORD_EXISTS , NOT_INSERTED};
+enum TOF_INSERT_STATUS {TOF_INSERT_SUCCUSFUL , TOF_RECORD_EXISTS , TOF_NOT_INSERTED};
 typedef struct {
     FILE *file;
     TOF_Header header;
@@ -66,10 +66,10 @@ int TOF_getHeader(TOF_FILE *f , TOF_Header *header);
 int TOF_readBlock(TOF_FILE * f , int n , TOF_Buffer *buffer) ;
 int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer);
 int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *student);
-void TOF_LineToRecord(char* line,Student* student,enum INSERT_STATUS *LineStatus);
+void TOF_LineToRecord(char* line,Student* student,enum TOF_LINE_STATUS *LineStatus);
 void parseLine(char *line, char fields[NUM_FIELDS][MAX_FIELD_LENGTH]);
-void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum INSERT_STATUS insertS);
-enum INSERT_STATUS insertElement(TOF_FILE *f , Student e);
+void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum TOF_INSERT_STATUS insertS);
+enum TOF_INSERT_STATUS insertElement(TOF_FILE *f , Student e);
 int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile);
 int TOF_open(const char *name , TOF_FILE *file , char mode);
 int TOF_close(TOF_FILE *file);
