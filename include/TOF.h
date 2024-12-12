@@ -23,8 +23,8 @@
 #define MAX_FIELD_LENGTH 64
 
 
-#define TOF_FILE_NAME "..\\result\\Students_Infos.TOF\0"
-#define TOF_LOG_FILE "..\\result\\TOF_LOG.txt\0"
+#define TOF_FILE_NAME "./result/Students_Infos.TOF\0"
+#define TOF_LOG_FILE "./result/TOF_LOG.txt\0"
 extern int TOF_NUMBER_OF_READS;
 extern int TOF_NUMBER_OF_WRITES;
 

@@ -1,6 +1,6 @@
 #include <TOF.h>
-int TOF_NUMBER_OF_READS;
-int TOF_NUMBER_OF_WRITES;
+int TOF_NUMBER_OF_READS=0;
+int TOF_NUMBER_OF_WRITES=0;
 int TOF_open(const char *name , TOF_FILE *file , char mode){
     switch (mode)
     {
@@ -65,22 +65,28 @@ int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *
 	inf = 1 ;
 	bool stop = false;
 	(*found) = false;
+    if (header.NB==0) {
+        (*i)=1;
+        (*j)=0;
+        (*found)=false;
+        return EXIT_SUCCESS;
+    }
 	while(!stop){
-		*i = (sup + inf )/2;
-		TOF_readBlock(f,*i,&buffer);
+		(*i )= (sup + inf )/2;
+		TOF_readBlock(f,(*i),&buffer);
 		if (key >= buffer.data[0].id && key <= buffer.data[buffer.NR].id){ 
             //  the element should be found in the block number i
             inf = 0;
             sup = buffer.NR -1;
             while (!stop){
-                *j = (sup + inf )/2;
-                if (key == buffer.data[*j].id && !buffer.del[*j]){    // + deleted student
+                (*j) = (sup + inf )/2;
+                if (key == buffer.data[(*j)].id && !buffer.del[(*j)]){    // + deleted student
                     (*found) = true;
-                    if (student) (*student ) = buffer.data[*j];  
+                    if (student) (*student ) = buffer.data[(*j)];  
                     stop = true;
                 } else {
-                    if (key , buffer.data[*j].id) sup = *j-1;
-                    else inf = *j+1;
+                    if (key , buffer.data[(*j)].id) sup = (*j)-1;
+                    else inf = (*j)+1;
                 }
                 if (inf > sup) stop = false;
             }            
@@ -102,13 +108,13 @@ int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *
 enum TOF_INSERT_STATUS insertElement(TOF_FILE *f , Student e){
     int i,j;
     bool found;
-    TOF_Buffer buffer,nextBuffer;
+    TOF_Buffer buffer={{0},{0},0,0},nextBuffer={{0},{0},0,0};
     Student tmp;
     TOF_Header header;
     TOF_getHeader(f,&header);
-    TOF_search(f,e.id,&found,&i,&j,NULL);
+    TOF_search(f,e.id,&found,&i,&j,&tmp);
     if (found) return TOF_RECORD_EXISTS;   //Already exist
-    TOF_readBlock(f,i,&buffer);
+    if (i<=header.NB)TOF_readBlock(f,i,&buffer);
     bool stop = false;
     while (!stop){
         // element should be inserted in the bloc i and do only internal shifts
@@ -257,6 +263,7 @@ if ((dest==NULL)||(src==NULL)) return -1;
     int lineNumber=0;
     enum TOF_LINE_STATUS LineStatus;
     Student student;
+    int lol=0;
     // Skip the first line
     fgets(line,MAX_LINE_SIZE, src);
     while (fgets(line, MAX_LINE_SIZE, src))
@@ -264,6 +271,7 @@ if ((dest==NULL)||(src==NULL)) return -1;
         TOF_LineToRecord(line,&student,&LineStatus);  
         insertStatus=insertElement(dest,student);
         TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
+        printf("%d\n",lol++);
     }
 
 }

@@ -11,6 +11,7 @@ int main() {
             case 1:
                 printf("Creating TOF file...\n");
                 // Add function call for creating TOF file
+                CreatTOFMenu();
                 break;
             case 2:
                 printf("Creating TOVS file...\n");

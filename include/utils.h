@@ -5,8 +5,8 @@
 #include <TOVS.h>
 #include <TOF.h>
 
-#define CSV2_NAME "..\\resources\\students_data_2a.csv"
-#define CSV1_NAME "..\\resources\\students_data_1a.csv"
+#define CSV2_NAME "./resources/students_data_2a.csv"
+#define CSV1_NAME "./resources/students_data_1a.csv"
 
 void printMenu();
 bool CreatTOFMenu();
