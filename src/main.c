@@ -24,6 +24,9 @@ int main() {
             case 4:
                 printf("Displaying information about the files...\n");
                 // Add function call for displaying file information
+                TOF_FILE toff;
+                TOF_open(TOF_FILE_NAME,&toff,'r');
+                TOF_printFile(&toff);
                 break;
             case 5:
                 printf("Displaying status...\n");

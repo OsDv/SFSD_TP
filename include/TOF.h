@@ -55,8 +55,10 @@ typedef struct {
 enum TOF_LINE_STATUS {
 	TOF_EMPTY_LINE , TOF_MISSING_ID , TOF_MISSING_FIRST_NAME , TOF_MISSING_LAST_NAME , TOF_MISSING_BIRTH_DATE , TOF_MISSING_BIRTH_CITY , TOF_VALID_LINE
 };
+#define TOF_N_LINE_STATUS 7
 
 enum TOF_INSERT_STATUS {TOF_INSERT_SUCCUSFUL , TOF_RECORD_EXISTS , TOF_NOT_INSERTED};
+#define TOF_N_INSERT_STATUS 3
 typedef struct {
     FILE *file;
     TOF_Header header;
@@ -74,7 +76,10 @@ int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile);
 int TOF_open(const char *name , TOF_FILE *file , char mode);
 int TOF_close(TOF_FILE *file);
 
-
+void TOF_printFile(TOF_FILE *f);
+enum TOF_INSERT_STATUS TOF_inserWithLoadingFactor(TOF_FILE *f , Student e);
+int TOF_recordFragmentedSpace(Student s);
+void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int fragment, int *lineStat , int *insertStat );
 #endif
 /*
 
