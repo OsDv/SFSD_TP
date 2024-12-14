@@ -118,6 +118,7 @@ int TOF_search(TOF_FILE *f, int key, bool *found, int (*i), int (*j), Student *s
     // Key not found in any block; suggest insertion in a new block
     if (high >0){
         (*i) = high;  // Suggest the next block for insertion
+        TOF_readBlock(f,high,&buffer);
         (*j) = buffer.NR;    // Start at the first position of the new block
     } else {
         (*i)=1;
@@ -390,7 +391,7 @@ if ((dest==NULL)||(src==NULL)) return -1;
         // insertStatus=insertElement(dest,student);
         insertStatus = TOF_inserWithLoadingFactor(dest ,student);
         TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
-        
+        // TOF_printFile(dest);
         fragmentedSpace+=TOF_recordFragmentedSpace(student);
         lineNumber++;
         TotalReads+=TOF_NUMBER_OF_READS;
@@ -412,7 +413,7 @@ void TOF_printFile(TOF_FILE *f){
         printf("block %d=========%d \n",i,buffer.NR);
         for (int j=0;j<buffer.NR;j++){
             s=buffer.data[j];
-            printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
+            if(j>0 && s.id<buffer.data[j-1].id)printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
         }
     }
     fprintf(stderr,"done");

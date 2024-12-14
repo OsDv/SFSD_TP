@@ -38,9 +38,9 @@ bool CreatTOVSMenu(){
     
     printf("Reading from %s and %s\n",CSV2_NAME , TOF_FILE_NAME);
     csv = fopen(CSV2_NAME,"r");
-    TOF_open(TOF_FILE_NAME , &TOF_file , 'n');
+    TOF_open(TOF_FILE_NAME , &TOF_file , 'r');
 
-    if (TOVS_log == NULL || csv == NULL) {
+    if (TOF_file.file == NULL || csv == NULL) {
         printf("ERROR OPEN FILES!\ncheck files and try again...\n");
         return false;
     }
@@ -52,6 +52,10 @@ bool CreatTOVSMenu(){
         printf("ERROR CREATING FILES!\ncheck files and try again...\n");
         return false;
     }
+    TOVS_createFile(&TOVS_file,&TOF_file,csv,TOVS_log);
+    fclose(TOVS_log);
+    TOVS_close(&TOVS_file);
+    TOF_close(&TOF_file);
     fclose(csv);
     
 

@@ -10,4 +10,5 @@
 
 void printMenu();
 bool CreatTOFMenu();
+bool CreatTOVSMenu();
 #endif

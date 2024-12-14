@@ -1,4 +1,5 @@
 #include <TOVS.h>
+#include <TOF.h>
 #include <string.h>
 #include <stdbool.h>
 #include <windows.h>
@@ -97,6 +98,7 @@ int TOVS_getSize(TOVS_Buffer buffer,TOVS_Buffer buffer1 , int j){
 int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
     TOVS_Header header;
     TOVS_Buffer buffer,buffer1;
+    int block1; // number of block in buffer1
     int id,size;
     TOVS_getHeader(f,&header);
     bool stop = false;
@@ -105,6 +107,7 @@ int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
     (*j)=0;
     if (header.NB ==0) return 1; // the file is empty
     TOVS_readBlock(f,(*i),&buffer);
+    block1=2;
     if (header.NB>=2) TOVS_readBlock(f,2,&buffer1);//second buffer used only in case an element id or size is splited between two blocks
     while (!stop){
         if ((id=TOVS_getId(buffer,buffer1,(*j)))==key){ // the element is found at position block i start on character j
@@ -120,8 +123,17 @@ int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
                         (*j)=(*j)-MAX_CHARS_TOVS;
                         (*i)=(*i)+1;
                     }
-                    if ((*i) <=header.NB) buffer=buffer1; //TOVS_readBlock(f,(*i),&buffer);
-                    if ((*i)< header.NB) TOVS_readBlock(f,(*i)+1,&buffer1);
+                    if ((*i) <=header.NB) {
+                        if ((*i)==block1){
+                            buffer=buffer1; //TOVS_readBlock(f,(*i),&buffer);
+                        } else {
+                            TOVS_readBlock(f,(*i),&buffer);
+                        }
+                    }
+                    if ((*i)< header.NB) {
+                        TOVS_readBlock(f,(*i)+1,&buffer1);
+                        block1=(*i)+1;
+                    }
                 }
                 if (((*i) == header.NB && (*j)==header.NC) || (*i)>header.NB) stop = true; // reached end of file and the element not found 
             }
@@ -179,7 +191,7 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     if (found) return RECORD_EXISTS; // if element already inserted we dont insert the duplicat
     
     // we insert in middle of the file we need to shift
-    if (!(i==header.NB && j==header.NC)) TOVS_shiftRight(f,i,j,size);
+    if (!(i==header.NB && j==header.NC)&& (i<=header.NB)) TOVS_shiftRight(f,i,j,size);
     // printf("in inser=================\n");
     // printFile(f);
     // after shift or in case we dont need shift we write the record to the file
@@ -188,7 +200,7 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     header.NB=header.NB +((size+header.NC-1)/MAX_CHARS_TOVS);
     // header.NC= ((header.NC+size)%MAX_CHARS_TOVS);
     header.NC+=size;
-    if (header.NC>MAX_CHARS_TOVS) header.NC-=MAX_CHARS_TOVS;
+    while (header.NC>MAX_CHARS_TOVS) header.NC-=MAX_CHARS_TOVS;
     TOVS_setHeader(f,&header);
 
     if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
@@ -228,16 +240,68 @@ int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step){
 
 }
 
-int TOVS_lineToString(char *src , char *dest , int *size_){
+int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus lineStat, int *size_){
+    char idStr[TOVS_RECORDS_id_WIDTH+1];
+    idStr[TOVS_RECORDS_id_WIDTH]='\0';
+    for (int i=0;i<TOVS_RECORDS_id_WIDTH;i++)idStr[i]=src[i];
+    
+    bool found;
+    int block,offset;
+    Student student;
+    TOF_search(tof,atoi(idStr),&found,&block,&offset,&student);
     int j=0;
     while(src[j]!='\n' && src[j]!='\0')j++;
     j=j-4+3;// -4 ,0., +3 size width
-
+    int descLen=j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);
+    int fNameLen,lNameLen,bCityLen;
+    bool bDate;
+    if (found){
+        fNameLen= strlen(student.firstName);
+        lNameLen= strlen(student.lastName);
+        bCityLen= strlen(student.birthCity);
+        bDate=(bool)student.birthDate[0];
+        j+=fNameLen+lNameLen+bCityLen+bDate*DATE_SIZE+4;// number of separators needed
+    }
     (*size_)=j;
+    // size id year fname$lname$city$date$skills
+    // add size to string
     TOVS_sizeToString(j,dest);    
-    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
-    for(int i=0;i<TOVS_YEAR_WIDTH;i++) dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
-    for(int i=0;i<j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);i++) dest[i+TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH]=src[i+10];
+    int index = TOVS_RECORDS_SIZE_WIDTH;
+    // add id to string
+    for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) {
+        dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
+        index++;
+    }        
+    // add year of study to string
+    for(int i=0;i<TOVS_YEAR_WIDTH;i++) {
+        if (lineStat!=LINE_MISSING_YEAR)dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
+        else dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]='0';
+        index++;
+    }
+    // add first name to string
+    if(found){
+        strcpy(&(dest[index]),student.firstName);
+        index+=fNameLen;
+        dest[index++]=TOVS_SEPARATOR;
+        
+        strcpy(&(dest[index]),student.lastName);
+        index+=lNameLen;
+        dest[index++]=TOVS_SEPARATOR;
+
+        strcpy(&(dest[index]),student.birthCity);
+        index+=bCityLen;
+        dest[index++]=TOVS_SEPARATOR;
+        if (bDate){ 
+            strncpy(&(dest[index]),student.birthDate,DATE_SIZE);
+            index+=DATE_SIZE;
+        }
+        dest[index++]=TOVS_SEPARATOR;
+    } else {
+        strncpy(&(dest[index]),"$$$$",4);
+        index+=4;
+    }
+    // TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH
+    for(int i=0;i<descLen;i++) dest[i+index]=src[i+10];
 }
 
 enum LineStatus checkValidLine(char *line){
@@ -269,7 +333,7 @@ int TOVS_sizeToString(int n , char * dest){
     dest[0] = (n/100)%10 +'0';
 }
 
-int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
+int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
     if ((dest==NULL)||(src==NULL)) return -1;
     TOVS_Header header={0,0};
     TOVS_setHeader(dest,&header);
@@ -300,7 +364,7 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
         TOVS_NUMBER_OF_WRITES=0;
         // insert Valid Line
         if (lineStatus==VALID_LINE){
-            TOVS_lineToString(line,recordStr,&size);
+            TOVS_lineToString(line,tof,recordStr,lineStatus,&size);
             insertStatus = TOVS_insert(dest,recordStr,size);
         }
         TOVS_writeLineToLog(logFile ,lineNumber ,insertStatus,lineStatus);
@@ -308,11 +372,11 @@ int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile){
         totalWrite+=TOVS_NUMBER_OF_WRITES;
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
-        printf("================================\n");
-        if ((osama%1000)==0){
-            printFile((*dest));
+        // if ((osama%1000)==0){
+            // printf("================================\n");
+            // printFile((*dest));
             printf("%d\n",osama++);
-        }
+        // }
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);

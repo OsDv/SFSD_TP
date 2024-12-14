@@ -16,6 +16,7 @@ int main() {
             case 2:
                 printf("Creating TOVS file...\n");
                 // Add function call for creating TOVS file
+                CreatTOVSMenu();
                 break;
             case 3:
                 printf("Deleting selected records...\n");

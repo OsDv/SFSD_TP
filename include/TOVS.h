@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <TOF.h>
 #define MAX_LINE_SIZE 250
 #define MAX_CHARS_TOVS 100
 #define TOVS_RECORDS_SIZE_WIDTH 3
@@ -11,8 +12,9 @@
 #define TOVS_YEAR_WIDTH 1
 #define PRINT_N_RW_WIDTH 5
 #define PRINT_LINE_NUMBER_WIDTH 5
-#define TOVS_FILE_NAME "..\\result\\Students_Infos&Skills.tovs\0"
-#define TOVS_LOG_FILE "..\\result\\TOVS_LOG.txt\0"
+#define TOVS_SEPARATOR '$'
+#define TOVS_FILE_NAME "./result/Students_InfosSkills.tovs\0"
+#define TOVS_LOG_FILE "./result/TOVS_LOG.txt\0"
 typedef struct {
     char data[MAX_CHARS_TOVS];
 } TOVS_Block,TOVS_Buffer;
@@ -61,10 +63,10 @@ int TOVS_sizeToString(int n , char * dest);
 enum LineStatus checkValidLine(char *line);
 void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *linesSummary);
 void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , enum LineStatus lineS);
-int TOVS_createFile(TOVS_FILE *dest , FILE *src , FILE *logFile);
+int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile);
 int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step);
 int TOVS_exractYear(char * srs  , char *dest);
 int printFile(TOVS_FILE f);
-int TOVS_lineToString(char *src , char *dest , int *size_);
+int TOVS_lineToString(char *src,TOF_FILE *tof , char *dest ,enum LineStatus lineStat, int *size_);
 
 #endif
