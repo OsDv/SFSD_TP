@@ -25,10 +25,10 @@ bool CreatTOFMenu(){
     printf("Creating %s and %s\n", TOF_FILE_NAME , TOF_LOG_FILE);
     TOF_log = fopen(TOF_LOG_FILE,"w");
     TOF_open(TOF_FILE_NAME , &TOF_file , 'n');
-    bool status = (!TOF_createFile(&TOF_file , csv , TOF_log));
+    int status = (TOF_createFile(&TOF_file , csv , TOF_log));
     TOF_close(&TOF_file);
-    if (status)printf("Done files created!\n");
-    else printf("error creating files try again\n");
+    if (status==0)printf("\nDone files created!\n");
+    else printf("\nerror creating files try again\n");
 }
 bool CreatTOVSMenu(){
     FILE *TOVS_log , *csv;
@@ -57,10 +57,14 @@ bool CreatTOVSMenu(){
     TOVS_close(&TOVS_file);
     TOF_close(&TOF_file);
     fclose(csv);
+
+}
+
+void ShowStudentINfos(){
     
+}
 
-    
-
-
+void TOVS_printStudentInfos(){
+    TOVS_FILE tovs;
 
 }

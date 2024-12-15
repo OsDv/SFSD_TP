@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <TOF.h>
+#include <lib.h>
 #define MAX_LINE_SIZE 250
 #define MAX_CHARS_TOVS 100
 #define TOVS_RECORDS_SIZE_WIDTH 3

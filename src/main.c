@@ -1,6 +1,7 @@
 #include <utils.h>
-
+#include <lib.h>
 int main() {
+    ConfigProgram();
     int choice;
     
     while (1) {
@@ -45,3 +46,4 @@ int main() {
     
     return 0;
 }
+

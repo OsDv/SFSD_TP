@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <lib.h>
 /*
  * declaration of types and constants
  */
@@ -16,7 +17,6 @@
 #define StudentSize  sizeof(Student)
 #define MAX_RECORDS  100
 #define LOADING_FACTOR 0.60
-#define MAX_LINE_SIZE 250
 #define TOF_PRINT_LINE_NUMBER_WIDTH 3
 #define TOF_PRINT_N_RW_WIDTH 3
 #define NUM_FIELDS 5

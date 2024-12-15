@@ -69,9 +69,10 @@ int TOVS_readBlock(TOVS_FILE *f, int n , TOVS_Block *buffer) {
 int TOVS_getId(TOVS_Buffer buffer, TOVS_Buffer buffer1 , int j){
     char key[TOVS_RECORDS_id_WIDTH+1];
     key[TOVS_RECORDS_id_WIDTH]=0;
-    if (j <= MAX_CHARS_TOVS - TOVS_RECORDS_id_WIDTH-TOVS_RECORDS_SIZE_WIDTH)strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);
+    // -1 for delete flag
+    if (j <= MAX_CHARS_TOVS - TOVS_RECORDS_id_WIDTH-TOVS_RECORDS_SIZE_WIDTH-1)strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);
     else {
-        j=j+3;
+        j=j+4;// skip size and delte flag
         for (int i=0;i<TOVS_RECORDS_id_WIDTH;i++){
             if (j>=MAX_CHARS_TOVS){
                 buffer=buffer1;
@@ -251,7 +252,7 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
     TOF_search(tof,atoi(idStr),&found,&block,&offset,&student);
     int j=0;
     while(src[j]!='\n' && src[j]!='\0')j++;
-    j=j-4+3;// -4 ,0., +3 size width
+    j=j-4+3;// -4 ,0., +3 +1 deleteFlag size width
     int descLen=j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);
     int fNameLen,lNameLen,bCityLen;
     bool bDate;
@@ -262,20 +263,22 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
         bDate=(bool)student.birthDate[0];
         j+=fNameLen+lNameLen+bCityLen+bDate*DATE_SIZE+4;// number of separators needed
     }
+    j+=1;// delete flag
     (*size_)=j;
     // size id year fname$lname$city$date$skills
     // add size to string
     TOVS_sizeToString(j,dest);    
     int index = TOVS_RECORDS_SIZE_WIDTH;
+    dest[index++]='0';//delete flag
     // add id to string
     for(int i=0;i<TOVS_RECORDS_id_WIDTH;i++) {
-        dest[i+TOVS_RECORDS_SIZE_WIDTH]=src[i];
+        dest[i+TOVS_RECORDS_SIZE_WIDTH+1]=src[i];
         index++;
     }        
     // add year of study to string
     for(int i=0;i<TOVS_YEAR_WIDTH;i++) {
-        if (lineStat!=LINE_MISSING_YEAR)dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]=src[i+TOVS_RECORDS_id_WIDTH+1];
-        else dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH]='0';
+        if (lineStat!=LINE_MISSING_YEAR)dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH+1]=src[i+TOVS_RECORDS_id_WIDTH+1];
+        else dest[i+TOVS_RECORDS_SIZE_WIDTH+TOVS_RECORDS_id_WIDTH+1]='0';
         index++;
     }
     // add first name to string
@@ -343,8 +346,6 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
     /*
     *   reading element varaibles
     */
-    int osama=0;
-
     int lineNumber=0;
     int size;
     char recordStr[MAX_LINE_SIZE+TOVS_RECORDS_SIZE_WIDTH];
@@ -372,10 +373,11 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
         totalWrite+=TOVS_NUMBER_OF_WRITES;
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
+        showProgressBar(lineNumber,NumberOfLinesCSV2);
         // if ((osama%1000)==0){
             // printf("================================\n");
             // printFile((*dest));
-            printf("%d\n",osama++);
+            // printf("%d\n",osama++);
         // }
     }
     TOVS_getHeader(dest,&header);
@@ -435,7 +437,6 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     // insertion log
     fputs("\t2) INSERTION LOG :\n",f);
     fprintf(f,"number of inserted records: %d \n",inserSummary[INSERT_SUCCUSFUL]+inserSummary[INSERT_SUCCUSFUL_STRUDLE]);
-    fprintf(f,"number of strudle records: %d\n",inserSummary[INSERT_SUCCUSFUL_STRUDLE]);
     fprintf(f,"number of duplicat not inserted: %d",inserSummary[RECORD_EXISTS]);
     fprintf(f,"average records per block: %.2f\n",(double)(inserSummary[INSERT_SUCCUSFUL]+inserSummary[INSERT_SUCCUSFUL_STRUDLE])/(double)header.NB);
     // source file status

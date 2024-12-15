@@ -58,7 +58,7 @@ int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer){
     TOF_NUMBER_OF_WRITES++;
 }
 
-int TOF_search(TOF_FILE *f, int key, bool *found, int (*i), int (*j), Student *student) {
+int TOF_search(TOF_FILE *f, int key, bool *found, int *i, int *j, Student *student) {
     TOF_Header header;
     TOF_Buffer buffer;
 
@@ -394,6 +394,7 @@ if ((dest==NULL)||(src==NULL)) return -1;
         // TOF_printFile(dest);
         fragmentedSpace+=TOF_recordFragmentedSpace(student);
         lineNumber++;
+        showProgressBar(lineNumber,NumberOfLinesCSV1);
         TotalReads+=TOF_NUMBER_OF_READS;
         TotalWrites+=TOF_NUMBER_OF_WRITES;
         linesSummary[LineStatus]++;
@@ -402,6 +403,7 @@ if ((dest==NULL)||(src==NULL)) return -1;
     TOF_getHeader(dest,&header);
     fragmentedSpace+=((header.NB*MAX_RECORDS) - header.NR)*StudentSize;
     TOF_writeSummaryToLog(logFile,dest,TotalReads,TotalWrites,fragmentedSpace,linesSummary,insertSummary);
+    return 0;
     
 }
 
