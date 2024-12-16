@@ -60,11 +60,23 @@ bool CreatTOVSMenu(){
 
 }
 
-void ShowStudentINfos(){
-    
-}
 
-void TOVS_printStudentInfos(){
+void printStudentInfosMenu(){
+    int id;
     TOVS_FILE tovs;
-
+    TOVS_open(TOVS_FILE_NAME,&tovs,'r');
+    // printFile(tovs);
+    int i,j;
+    bool found;
+    char buffer[TOVS_MAX_ELEMENT_SIZE];
+    printf("Enter student id:");
+    readINT(&id);
+    TOVS_search(&tovs,id,&found,&i,&j);
+    if (!found || TOVS_isDeleted(buffer)){
+        printf("Id doesn't exists \n");
+        return;
+    }
+    TOVS_getElement(&tovs,buffer,i,j);
+    TOVS_printStudentInfos(buffer);
+    TOVS_close(&tovs);
 }

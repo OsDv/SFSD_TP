@@ -12,7 +12,14 @@ void showProgressBar(int current, int total) {
     printf("\r[%-50s] %d%%", "==================================================" + (50 - progress), percentage);
     fflush(stdout);
 }
-
+// secured input function to read an ineger from user
+void readINT(int *i){
+    char c;
+    while(scanf("%d",i)!=1){
+        while((c=fgetc(stdin))!=EOF && (c!='\n'));
+        printf("Enter a valid number:");
+    }
+}
 
 void ConfigProgram(){
     FILE *f=fopen(CONFIG_FILE_NAME,"r");

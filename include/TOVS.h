@@ -7,6 +7,7 @@
 #include <TOF.h>
 #include <lib.h>
 #define MAX_LINE_SIZE 250
+#define TOVS_MAX_ELEMENT_SIZE 400
 #define MAX_CHARS_TOVS 100
 #define TOVS_RECORDS_SIZE_WIDTH 3
 #define TOVS_RECORDS_id_WIDTH 5
@@ -69,5 +70,8 @@ int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step);
 int TOVS_exractYear(char * srs  , char *dest);
 int printFile(TOVS_FILE f);
 int TOVS_lineToString(char *src,TOF_FILE *tof , char *dest ,enum LineStatus lineStat, int *size_);
+void TOVS_getElement(TOVS_FILE *f , char *dest , int block , int offset);
+bool TOVS_isDeleted(char *elm);
+void TOVS_printStudentInfos(char *src);
 
 #endif

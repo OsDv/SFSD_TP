@@ -6,7 +6,7 @@ int main() {
     
     while (1) {
         printMenu();
-        scanf("%d", &choice);
+        readINT(&choice);
         
         switch (choice) {
             case 1:
@@ -33,6 +33,7 @@ int main() {
             case 5:
                 printf("Displaying status...\n");
                 // Add function call for displaying status
+                printStudentInfosMenu();
                 break;
             case 0:
                 printf("Exiting the program...\n");

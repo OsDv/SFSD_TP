@@ -1,1 +1,3 @@
 writeBlock in TOF insert
+
+because no update header before call write string cause problem last block ecraser :")

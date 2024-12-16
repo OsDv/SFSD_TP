@@ -11,4 +11,5 @@ extern int NumberOfLinesCSV1;
 extern int NumberOfLinesCSV2;
 void ConfigProgram();
 void showProgressBar(int current, int total);
+void readINT(int *i);
 #endif

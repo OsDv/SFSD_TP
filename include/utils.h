@@ -12,5 +12,6 @@
 void printMenu();
 bool CreatTOFMenu();
 bool CreatTOVSMenu();
+void printStudentInfosMenu();
 
 #endif

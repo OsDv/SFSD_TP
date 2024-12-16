@@ -70,7 +70,7 @@ int TOVS_getId(TOVS_Buffer buffer, TOVS_Buffer buffer1 , int j){
     char key[TOVS_RECORDS_id_WIDTH+1];
     key[TOVS_RECORDS_id_WIDTH]=0;
     // -1 for delete flag
-    if (j <= MAX_CHARS_TOVS - TOVS_RECORDS_id_WIDTH-TOVS_RECORDS_SIZE_WIDTH-1)strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);
+    if (j <= MAX_CHARS_TOVS - TOVS_RECORDS_id_WIDTH-TOVS_RECORDS_SIZE_WIDTH-1)strncpy(key,&buffer.data[j+TOVS_RECORDS_SIZE_WIDTH+1],TOVS_RECORDS_id_WIDTH);
     else {
         j=j+4;// skip size and delte flag
         for (int i=0;i<TOVS_RECORDS_id_WIDTH;i++){
@@ -171,7 +171,7 @@ int TOVS_exractYear(char * src  , char *dest){
 enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     char id[TOVS_RECORDS_id_WIDTH+1]; // buffer to read id from string
     id[TOVS_RECORDS_id_WIDTH]=0; 
-    strncpy(id,&src[TOVS_RECORDS_SIZE_WIDTH],TOVS_RECORDS_id_WIDTH);// copy the id to the buffer
+    strncpy(id,&src[TOVS_RECORDS_SIZE_WIDTH+1],TOVS_RECORDS_id_WIDTH);// copy the id to the buffer
     int key = atoi(id);// make integer from the id
     int i,j; // indexes for block and deplacement
     bool found; 
@@ -195,15 +195,15 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
     if (!(i==header.NB && j==header.NC)&& (i<=header.NB)) TOVS_shiftRight(f,i,j,size);
     // printf("in inser=================\n");
     // printFile(f);
-    // after shift or in case we dont need shift we write the record to the file
-    TOVS_writeString(f,src,size,i,j,&strudle);
     // update header
     header.NB=header.NB +((size+header.NC-1)/MAX_CHARS_TOVS);
     // header.NC= ((header.NC+size)%MAX_CHARS_TOVS);
     header.NC+=size;
     while (header.NC>MAX_CHARS_TOVS) header.NC-=MAX_CHARS_TOVS;
     TOVS_setHeader(f,&header);
-
+// must update header before call writeString because shift cause modification in file
+    // after shift or in case we dont need shift we write the record to the file
+    TOVS_writeString(f,src,size,i,j,&strudle);
     if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
     else return INSERT_SUCCUSFUL;
 }
@@ -374,11 +374,11 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
         insertSummary[insertStatus]++;
         linesStatusSummary[lineStatus]++;
         showProgressBar(lineNumber,NumberOfLinesCSV2);
-        // if ((osama%1000)==0){
-            // printf("================================\n");
-            // printFile((*dest));
-            // printf("%d\n",osama++);
-        // }
+        /*if (lineNumber>1650){
+            printf("================================\n");
+            printFile((*dest));
+            printf("%d\n",lineNumber);
+        }*/
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
@@ -449,13 +449,62 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     
 
 }
+void TOVS_getElement(TOVS_FILE *f , char *dest , int block , int offset){
+    TOVS_Header header;
+    TOVS_Buffer buffer,buffer1;
+    TOVS_getHeader(f,&header);
+    if (block>header.NB) return ;//block doesnt exist
+    TOVS_readBlock(f,block,&buffer);
+    if (block+1<=header.NB) TOVS_readBlock(f,block+1,&buffer1);
+    int size=TOVS_getSize(buffer,buffer1,offset);
+    for (int i=0;i<size;i++){
+        if(offset>=MAX_CHARS_TOVS){
+            offset-=MAX_CHARS_TOVS;
+            if (block+1<=header.NB)buffer=buffer1;
+            block++;
+            if (block+1<=header.NB) TOVS_readBlock(f,block+1,&buffer1);
+        }
+        dest[i]=buffer.data[offset++];
+    }
+}
 
+void TOVS_getLname(char *src){
+    int i=10;
+    bool stop=false;
+    while(!stop){
+        if (src[i]==TOVS_SEPARATOR)stop=true;
+    }
+}
+
+void TOVS_printStudentInfos(char *src){
+    // size delete id    year   fname lname city date desc
+    // 0-2    3     4-8  9      10-$   $       $   $   
+    printf("\tID: %.*s\n",TOVS_RECORDS_id_WIDTH,&(src[4]));
+    int start=10,len=0;
+    while(src[start+(len++)]!=TOVS_SEPARATOR);
+    printf("\tFirst Name: %.*s\n",len,&(src[start]));
+    start=start+len+1;
+    len=0;
+    while(src[start+(len++)]!=TOVS_SEPARATOR);
+    printf("\tLast Name: %.*s\n",len,&(src[start]));
+    printf("\tYear of Study: %c\n",src[9]);
+    start=start+len;
+    len=0;
+    while(src[start+(len++)]!=TOVS_SEPARATOR);
+    printf("\tBirth's City: %.*s\n",len,&(src[start]));
+    start=start+len+1;
+    printf("\tBirth's Date: %.*s\n",DATE_SIZE,&(src[start]));
+
+}
+bool TOVS_isDeleted(char *elm){
+    return (elm[3]==1);
+}
 int printFile(TOVS_FILE f){
     TOVS_Header header;
     TOVS_getHeader(&f,&header);
     TOVS_Buffer buffer;
     printf("NB:%d\tNC:%d\n",header.NB,header.NC);
-    for (int i=1;i<=header.NB;i++){
+    for (int i=header.NB-1;i<=header.NB;i++){
         TOVS_readBlock(&f,i,&buffer);
         if(i<header.NB)printf("block %d : [%.*s]\n",i,MAX_CHARS_TOVS,buffer.data);
         else printf("block %d : [%.*s]\n",i,header.NC,buffer.data);
