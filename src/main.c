@@ -32,8 +32,11 @@ int main() {
                 break;
             case 5:
                 printf("Displaying status...\n");
+                checkStatus();
                 // Add function call for displaying status
-                printStudentInfosMenu();
+                // printStudentInfosMenu();
+                break;
+            case 6:printStudentInfosMenu();
                 break;
             case 0:
                 printf("Exiting the program...\n");

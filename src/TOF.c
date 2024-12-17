@@ -34,7 +34,12 @@ int TOF_close(TOF_FILE *file){
     fclose(file->file);
     file->file=NULL;
 }
-
+FILE * TOF_getFile(TOF_FILE *f){
+    return f->file;
+}
+void TOF_setFile(TOF_FILE *f,FILE *file){
+    f->file=file;
+}
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header){
 	(*header)=f->header;
 }

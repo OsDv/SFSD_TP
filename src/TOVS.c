@@ -14,7 +14,12 @@ int TOVS_setHeader(TOVS_FILE *file, TOVS_Header *header){
 int TOVS_getHeader(TOVS_FILE *file, TOVS_Header *header){
 	(*header)=file->header;
 }
-
+FILE *TOVS_getFile(TOVS_FILE *f){
+    return f->file;
+}
+void TOVS_setFile(TOVS_FILE *f , FILE *file){
+    f->file = file;
+}
 int TOVS_open(const char *name , TOVS_FILE *file , char mode){
     switch (mode)
     {
@@ -252,7 +257,8 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
     TOF_search(tof,atoi(idStr),&found,&block,&offset,&student);
     int j=0;
     while(src[j]!='\n' && src[j]!='\0')j++;
-    j=j-4+3;// -4 ,0., +3 +1 deleteFlag size width
+    j=j-4+3;// -4 two sepratort and .0 , +3 for size ,  +1 deleteFlag size width
+    if (lineStat==LINE_MISSING_YEAR) j+=2;
     int descLen=j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);
     int fNameLen,lNameLen,bCityLen;
     bool bDate;
@@ -364,10 +370,10 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
         TOVS_NUMBER_OF_READS=0;
         TOVS_NUMBER_OF_WRITES=0;
         // insert Valid Line
-        if (lineStatus==VALID_LINE){
+        // if (lineStatus==VALID_LINE){
             TOVS_lineToString(line,tof,recordStr,lineStatus,&size);
             insertStatus = TOVS_insert(dest,recordStr,size);
-        }
+        // }
         TOVS_writeLineToLog(logFile ,lineNumber ,insertStatus,lineStatus);
         totalRead+=TOVS_NUMBER_OF_READS;
         totalWrite+=TOVS_NUMBER_OF_WRITES;
@@ -482,18 +488,20 @@ void TOVS_printStudentInfos(char *src){
     printf("\tID: %.*s\n",TOVS_RECORDS_id_WIDTH,&(src[4]));
     int start=10,len=0;
     while(src[start+(len++)]!=TOVS_SEPARATOR);
-    printf("\tFirst Name: %.*s\n",len,&(src[start]));
-    start=start+len+1;
-    len=0;
-    while(src[start+(len++)]!=TOVS_SEPARATOR);
-    printf("\tLast Name: %.*s\n",len,&(src[start]));
-    printf("\tYear of Study: %c\n",src[9]);
+    printf("\tFirst Name: %.*s\n",len-1,&(src[start]));
     start=start+len;
     len=0;
     while(src[start+(len++)]!=TOVS_SEPARATOR);
-    printf("\tBirth's City: %.*s\n",len,&(src[start]));
-    start=start+len+1;
-    printf("\tBirth's Date: %.*s\n",DATE_SIZE,&(src[start]));
+    printf("\tLast Name: %.*s\n",len-1,&(src[start]));
+    if (src[9]!='0') printf("\tYear of Study: %c\n",src[9]);
+    else printf("\tYear of Study: unknown\n");
+    start=start+len;
+    len=0;
+    while(src[start+(len++)]!=TOVS_SEPARATOR);
+    printf("\tBirth's City: %.*s\n",len-1,&(src[start]));
+    start=start+len;
+    if (src[start]!='$')printf("\tBirth's Date: %.*s\n",DATE_SIZE,&(src[start]));
+    else printf("\tBirth's Date: unknown\n");
 
 }
 bool TOVS_isDeleted(char *elm){

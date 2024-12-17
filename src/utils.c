@@ -9,6 +9,7 @@ void printMenu() {
     printf("3. Delete selected records\n");
     printf("4. Information about the files\n");
     printf("5. Status\n");
+    printf("6. Get Student Infos\n");
     printf("0. Exit\n");
     printf("Enter your choice: ");
 }
@@ -79,4 +80,17 @@ void printStudentInfosMenu(){
     TOVS_getElement(&tovs,buffer,i,j);
     TOVS_printStudentInfos(buffer);
     TOVS_close(&tovs);
+}
+
+void checkStatus(){
+    TOF_FILE tof;
+    TOVS_FILE tovs;
+    FILE *tofLog,*tovsLog;
+    TOF_open(TOF_FILE_NAME,&tof,'r');
+    if (TOF_getFile(&tof)!=NULL) printf("TOF  file: %s\n",TOF_FILE_NAME);
+    else printf("TOF file: NOT-Found\n");
+    TOVS_open(TOVS_FILE_NAME,&tovs,'r');
+    if (TOVS_getFile(&tovs)!=NULL) printf("TOVS file: %s\n",TOVS_FILE_NAME);
+    else printf("TOVS file: NOT-Found\n");
+
 }

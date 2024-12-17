@@ -58,6 +58,8 @@ int TOVS_open(const char *name , TOVS_FILE *file , char mode);
 */
 int TOVS_getId(TOVS_Buffer buffer ,TOVS_Buffer buffer1, int j);
 int TOVS_getSize(TOVS_Buffer buffer,TOVS_Buffer buffer1 , int j);
+FILE *TOVS_getFile(TOVS_FILE *f);
+void TOVS_setFile(TOVS_FILE *f , FILE *file);
 int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  );
 int TOVS_writeString(TOVS_FILE *f , char *src , int size , int block , int index,bool *strudle);
 enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size);

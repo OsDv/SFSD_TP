@@ -1,3 +1,5 @@
 writeBlock in TOF insert
 
+student with no studying yewar are not found in TOVS
+
 because no update header before call write string cause problem last block ecraser :")

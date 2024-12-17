@@ -65,6 +65,8 @@ typedef struct {
 } TOF_FILE;
 int TOF_setHeader(TOF_FILE *f , TOF_Header *header);
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header);
+FILE * TOF_getFile(TOF_FILE *f);
+void TOF_setFile(TOF_FILE *f,FILE *file);
 int TOF_readBlock(TOF_FILE * f , int n , TOF_Buffer *buffer) ;
 int TOF_writeBlock(TOF_FILE * f , int n , TOF_Buffer *buffer);
 int TOF_search(TOF_FILE *f , int key , bool *found , int *i , int *j , Student *student);
@@ -75,7 +77,6 @@ enum TOF_INSERT_STATUS insertElement(TOF_FILE *f , Student e);
 int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile);
 int TOF_open(const char *name , TOF_FILE *file , char mode);
 int TOF_close(TOF_FILE *file);
-
 void TOF_printFile(TOF_FILE *f);
 enum TOF_INSERT_STATUS TOF_inserWithLoadingFactor(TOF_FILE *f , Student e);
 int TOF_recordFragmentedSpace(Student s);
