@@ -116,7 +116,7 @@ int TOVS_search(TOVS_FILE *f ,int key , bool *found , int *i , int *j  ){
     block1=2;
     if (header.NB>=2) TOVS_readBlock(f,2,&buffer1);//second buffer used only in case an element id or size is splited between two blocks
     while (!stop){
-        if ((id=TOVS_getId(buffer,buffer1,(*j)))==key){ // the element is found at position block i start on character j
+        if (((id=TOVS_getId(buffer,buffer1,(*j)))==key)&& !(TOVS_isDeleted(buffer,buffer1,(*j)))){ // the element is found at position block i start on character j
             (*found)=true;
             stop=true;
         } else {
@@ -504,9 +504,6 @@ void TOVS_printStudentInfos(char *src){
     else printf("\tBirth's Date: unknown\n");
 
 }
-bool TOVS_isDeleted(char *elm){
-    return (elm[3]==1);
-}
 int printFile(TOVS_FILE f){
     TOVS_Header header;
     TOVS_getHeader(&f,&header);
@@ -518,6 +515,77 @@ int printFile(TOVS_FILE f){
         else printf("block %d : [%.*s]\n",i,header.NC,buffer.data);
     }
 }
+bool TOVS_isDeleted(TOVS_Buffer buffer , TOVS_Buffer buffer1 , int j){
+    if (MAX_CHARS_TOVS-j>3) return (buffer.data[j+3]=='1');
+    else return (buffer1.data[j-MAX_CHARS_TOVS+3]=='1');
+}
+void TOVS_delete(TOVS_FILE *file ,TOVS_Buffer buffer , TOVS_Buffer buffer1,int j){
+    if (MAX_CHARS_TOVS-j>3) {
+        (buffer.data[j+3]='1');
+    }
+    else {
+        (buffer1.data[j-MAX_CHARS_TOVS+3]='1');    
+    }
+}
+bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size){
+    bool found;
+    int i,j;
+    TOVS_Buffer buffer,buffer1;
+    TOVS_search(file,id,&found,&i,&j);
+    if (!found)return false;
+    if (MAX_CHARS_TOVS-j>9) {
+        TOVS_readBlock(file,i,&buffer);
+        TOVS_delete(file,buffer,buffer,j);
+        TOVS_writeBlock(file,i,&buffer);
+        (*size)=TOVS_getSize(buffer,buffer1,j);
+    } else {
+        TOVS_readBlock(file,i,&buffer);
+        TOVS_readBlock(file,i+1,&buffer1);
+        TOVS_delete(file,buffer,buffer1,j);  
+        TOVS_writeBlock(file,i+1,&buffer1);
+        (*size)=TOVS_getSize(buffer,buffer1,j);
+    }
+    return true;
+}
+void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log){
+    char buffer[MAX_LINE_SIZE];
+    fgets(buffer,MAX_LINE_SIZE,toDelete);
+    int id;
+    int totalRead=0,totalWrite=0;
+    int numberDeleted=0,numberNotFound=0;
+    int size,fragmentedSpace=0;
+    int line=0;
+    while((fgets(buffer,MAX_LINE_SIZE,toDelete))!=NULL){
+        sscanf(buffer,"%d",&id);
+        TOVS_NUMBER_OF_READS=0;
+        TOVS_NUMBER_OF_WRITES=0;
+        if(TOVS_deleteById(src,id,&size)){
+            TOVS_writeLineTodeleteLog(log,id,true);
+            fragmentedSpace+=size;
+            numberDeleted++;
+        } else {
+            TOVS_writeLineTodeleteLog(log,id,false);
+            numberNotFound++;
+        }
+        showProgressBar(line++,NumberOfLinesDelete);
+        totalRead+=TOVS_NUMBER_OF_READS;
+        totalWrite+=TOVS_NUMBER_OF_WRITES;
+    }
+}
+void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound){
+    fputs("\n====\tDelete Summary\t====\n",log);
+    fprintf(log,"Total deleted: %d\n",deleted);
+    fprintf(log,"Total not found: %d\n",notFound);
+    fprintf(log,"Fragmented space made: %d\n",fragmented);
+    fprintf(log,"Total reads %d\twrites %d",totalR,totalW);
+}
+void TOVS_writeLineTodeleteLog(FILE *log ,int id,bool status){
+    if (status){
+        fprintf(log,"%d|DELETED|%d read %d write\n",id,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
+    } else {
+        fprintf(log,"%d|not-found|%d read %d write\n",id,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);        
+    }
+}
 /*
 0 *
 1 *
@@ -525,6 +593,7 @@ int printFile(TOVS_FILE f){
 3
 4
 5
+
 
 0
 1

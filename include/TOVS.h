@@ -73,7 +73,11 @@ int TOVS_exractYear(char * srs  , char *dest);
 int printFile(TOVS_FILE f);
 int TOVS_lineToString(char *src,TOF_FILE *tof , char *dest ,enum LineStatus lineStat, int *size_);
 void TOVS_getElement(TOVS_FILE *f , char *dest , int block , int offset);
-bool TOVS_isDeleted(char *elm);
 void TOVS_printStudentInfos(char *src);
-
+bool TOVS_isDeleted(TOVS_Buffer buffer , TOVS_Buffer buffer1 , int j);
+void TOVS_delete(TOVS_FILE *file ,TOVS_Buffer buffer , TOVS_Buffer buffer1,int j);
+bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size);
+void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log);
+void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound);
+void TOVS_writeLineTodeleteLog(FILE *log ,int id,bool status);
 #endif

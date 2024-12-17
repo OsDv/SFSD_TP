@@ -73,7 +73,7 @@ void printStudentInfosMenu(){
     printf("Enter student id:");
     readINT(&id);
     TOVS_search(&tovs,id,&found,&i,&j);
-    if (!found || TOVS_isDeleted(buffer)){
+    if (!found){
         printf("Id doesn't exists \n");
         return;
     }

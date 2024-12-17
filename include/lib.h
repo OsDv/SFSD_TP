@@ -9,6 +9,7 @@
 
 extern int NumberOfLinesCSV1;
 extern int NumberOfLinesCSV2;
+extern int NumberOfLinesDelete;
 void ConfigProgram();
 void showProgressBar(int current, int total);
 void readINT(int *i);

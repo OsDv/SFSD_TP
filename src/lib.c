@@ -4,7 +4,7 @@
 
 int NumberOfLinesCSV1;
 int NumberOfLinesCSV2;
-
+int NumberOfLinesDelete;
 void showProgressBar(int current, int total) {
     int percentage = (current * 100) / total;
     int progress = (percentage / 2); // Assuming the bar width is 50
@@ -28,4 +28,6 @@ void ConfigProgram(){
     sscanf(buffer,"%d",&NumberOfLinesCSV1);
     fgets(buffer,MAX_LINE_SIZE,f);
     sscanf(buffer,"%d",&NumberOfLinesCSV2);
+    fgets(buffer,MAX_LINE_SIZE,f);
+    sscanf(buffer,"%d",&NumberOfLinesDelete);
 }
