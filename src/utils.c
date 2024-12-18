@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <utils.h>
-
+TOF_SI_BirthDate BirthDateIndex;
+TOF_PI_ID tab;
+int primaryIndexSize;
 void printMenu() {
     printf("Select an option:\n");
     printf("1. Create TOF file\n");
     printf("2. Create TOVS file\n");
-    printf("3. Delete selected records\n");
-    printf("4. Information about the files\n");
-    printf("5. Status\n");
-    printf("6. Get Student Infos\n");
+    printf("3. Delete selected records TOF\n");
+    printf("4. Delete selected records TOVS\n");
+    printf("5. Information about the files\n");
+    printf("6. Status\n");
+    printf("7. Get Student Infos\n");
     printf("0. Exit\n");
     printf("Enter your choice: ");
 }
@@ -93,4 +96,26 @@ void checkStatus(){
     if (TOVS_getFile(&tovs)!=NULL) printf("TOVS file: %s\n",TOVS_FILE_NAME);
     else printf("TOVS file: NOT-Found\n");
 
+}
+void TOVSDeleteFromFile(){
+    FILE *deleteFiel=fopen(DELETE_FILE_NAME,"r");
+    FILE *log=fopen(TOVS_LOG_DELETE_FILE,"w");
+    TOVS_FILE tovs;
+    TOVS_open(TOVS_FILE_NAME,&tovs,'a');
+    if (deleteFiel==NULL || log==NULL || TOVS_getFile(&tovs)==NULL){
+        printf("ERROR OPEN FILES!\ncheck files and try again...\n");
+        return;
+    }
+    TOVS_deleteFromFile(&tovs,deleteFiel,log);
+    printf("\nDelete End...\n");
+}
+void creatTOF_SIBirthDate(){
+    TOF_FILE tof;
+    TOF_open(TOF_FILE_NAME,&tof,'r');
+    if (tof.file==NULL){
+        printf("cant open file tof\n");
+        return;
+    }
+    TOF_creatSIonBirthDate(&tof,&BirthDateIndex);
+    printf("creatio  is DONE! \n");
 }

@@ -8,11 +8,13 @@
 #define CLEAR_SCREEN "\033[2J"
 #define CSV2_NAME "./resources/students_data_2a.csv"
 #define CSV1_NAME "./resources/students_data_1a.csv"
+#define DELETE_FILE_NAME "./resources/delete_students.csv"
 
 void printMenu();
 bool CreatTOFMenu();
 bool CreatTOVSMenu();
 void printStudentInfosMenu();
 void checkStatus();
-
+void TOVSDeleteFromFile();
+void creatTOF_SIBirthDate();
 #endif

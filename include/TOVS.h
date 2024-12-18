@@ -17,6 +17,8 @@
 #define TOVS_SEPARATOR '$'
 #define TOVS_FILE_NAME "./result/Students_InfosSkills.tovs\0"
 #define TOVS_LOG_FILE "./result/TOVS_LOG.txt\0"
+#define TOVS_LOG_DELETE_FILE "./result/TOVS_DELTE_LOG.txt\0"
+
 typedef struct {
     char data[MAX_CHARS_TOVS];
 } TOVS_Block,TOVS_Buffer;

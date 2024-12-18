@@ -428,3 +428,109 @@ void TOF_printFile(TOF_FILE *f){
 void TOF_printStudent(Student s){
     printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
 }
+/*  TP PRESENCIEL   */
+int CompareDates(char *date1 , char *date2){
+    int result;
+    result = strncmp(&(date1[6]),&(date1[6]),4);
+    if (result!=0) return result;
+    result = strncmp(&(date1[3]),&(date1[3]),2);
+    if (result!=0) return result;    
+    result = strncmp(&(date1[0]),&(date1[0]),2);
+    return result;
+}
+// 11/11/1111
+void TOF_searchSIonBirthDate(TOF_SI_BirthDate *index,char *date,int id , int *pos , bool *found){
+    int sup,inf;
+    sup = index->size;
+    inf =0;
+    bool stop=false;
+    int result;
+    int i;
+    TOF_SI_BirthDate_LIST *list;
+    while (!stop && sup>=inf){
+        i= (int)((sup+inf)/2);
+        result = CompareDates(date,index->tab[i].birthDate);
+        if (result<0) sup =i-1;
+        else if (result>0) inf =i+1;
+        else {
+            list=index->tab[i].list;
+            while (list!=NULL){
+                if (list->id==id){
+                    (*found)=true;
+                }
+            }
+            stop=true;
+        }
+    }
+    (*pos)=inf;
+}
+void TOF_shiftSIonBirthDate(TOF_SI_BirthDate *index , int pos ,int step){
+    for (int i=pos;i<index->size;i++){
+        index->tab[i+step]=index->tab[i];
+    }
+}
+void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id ){
+    bool found;
+    int pos;
+    TOF_searchSIonBirthDate(index,date,id,&pos,&found);
+    if (found) return;
+    TOF_SI_BirthDate_LIST *new=malloc(sizeof(TOF_SI_BirthDate_LIST));
+    new->id=id;
+    if (!strncmp(date,index->tab[pos].birthDate,DATE_SIZE)){
+        TOF_SI_BirthDate_LIST * list=index->tab[pos].list;
+        index->tab[pos].list=new;
+        new->next=list;
+    } else {
+        TOF_shiftSIonBirthDate(index,pos,1);
+        strncpy(&(index->tab[pos].birthDate),date,DATE_SIZE);
+        index->tab[pos].list=new;
+    }
+}
+void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest){
+    TOF_Header header;
+    TOF_getHeader(file,&header);
+    TOF_Buffer buffer;
+    int index;
+    for(int i=1;i<=header.NB;i++){
+        TOF_readBlock(file,i,&buffer);
+        for (int j=0;j<=buffer.NR;j++){
+            if (!buffer.del[j]){
+                TOF_insertSIonBirthDate(dest,buffer.data[j].birthDate,buffer.data[j].id);
+            }
+        }
+    }
+}
+void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file){
+    fwrite(index,sizeof(TOF_SI_BirthDate),1,file);
+}
+void TOF_primaryIndex(TOF_FILE *f, FILE* *dest,int* size )
+{
+TOF_Header header;
+TOF_getHeader(f,&header);
+TOF_Buffer buffer;
+int i;
+int j;
+int index=0;
+TOF_PI_ID IndexBuf;
+TOF_PI_ID tab[TOF_MAX_INDEX];
+for ( i=0; i <= header.NB; i++)
+{
+ TOF_readBlock(f,i,&buffer);
+ j=buffer.NR;
+ while (buffer.del[j] && j!=-1)
+ {
+ j--;
+ }
+ if (j>-1)
+ {
+ IndexBuf.id=buffer.data[j].id;
+ IndexBuf.block=i;
+ IndexBuf.pos=j;
+ index++;
+ tab[index]=IndexBuf;
+ }
+ else {index--;}
+}
+(*size)=index;
+
+}

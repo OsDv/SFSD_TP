@@ -10,7 +10,7 @@
  * declaration of types and constants
  */
 // structure contain student personal informations
-
+#define TOF_MAX_INDEX 10000
 #define MAX_NAME_SIZE  20
 #define MAX_CITY_NAME  20
 #define DATE_SIZE 10
@@ -63,6 +63,19 @@ typedef struct {
     FILE *file;
     TOF_Header header;
 } TOF_FILE;
+typedef struct {
+	struct {char *birthDate;TOF_SI_BirthDate_LIST *list;} tab[TOF_MAX_INDEX];
+	int size;
+}TOF_SI_BirthDate;
+typedef struct TOF_SI_BirthDate_L {
+	int id;
+	struct TOF_SI_BirthDate_L* next;
+}TOF_SI_BirthDate_LIST;
+typedef struct  {
+ int block;
+ int pos; 
+ int id ;
+} TOF_PI_ID;
 int TOF_setHeader(TOF_FILE *f , TOF_Header *header);
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header);
 FILE * TOF_getFile(TOF_FILE *f);
@@ -81,6 +94,14 @@ void TOF_printFile(TOF_FILE *f);
 enum TOF_INSERT_STATUS TOF_inserWithLoadingFactor(TOF_FILE *f , Student e);
 int TOF_recordFragmentedSpace(Student s);
 void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int fragment, int *lineStat , int *insertStat );
+/*
+		TP presenciel
+*/
+void TOF_searchSIonBirthDate(TOF_SI_BirthDate *index,char *date,int id , int *pos , bool *found);
+void TOF_shiftSIonBirthDate(TOF_SI_BirthDate *index , int pos ,int step);
+void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id );
+void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest);
+void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file);
 #endif
 /*
 

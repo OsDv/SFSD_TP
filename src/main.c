@@ -20,23 +20,29 @@ int main() {
                 CreatTOVSMenu();
                 break;
             case 3:
-                printf("Deleting selected records...\n");
+                printf("Deleting selected records TOF...\n");
                 // Add function call for deleting records
                 break;
+                break;
             case 4:
+                printf("Deleting selected records TOVS...\n");
+                // Add function call for deleting records
+                TOVSDeleteFromFile();
+                break;
+            case 5:
                 printf("Displaying information about the files...\n");
                 // Add function call for displaying file information
                 TOF_FILE toff;
                 TOF_open(TOF_FILE_NAME,&toff,'r');
                 TOF_printFile(&toff);
                 break;
-            case 5:
+            case 6:
                 printf("Displaying status...\n");
                 checkStatus();
                 // Add function call for displaying status
                 // printStudentInfosMenu();
                 break;
-            case 6:printStudentInfosMenu();
+            case 7:printStudentInfosMenu();
                 break;
             case 0:
                 printf("Exiting the program...\n");
