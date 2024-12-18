@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <utils.h>
 TOF_SI_BirthDate BirthDateIndex;
-TOF_PI_ID tab;
+TOF_PI_ID tab[10000];
 int primaryIndexSize;
 void printMenu() {
     printf("Select an option:\n");
@@ -118,4 +118,15 @@ void creatTOF_SIBirthDate(){
     }
     TOF_creatSIonBirthDate(&tof,&BirthDateIndex);
     printf("creatio  is DONE! \n");
+}
+void creatTOF_primaryIndex(){
+    TOF_FILE tof;
+    FILE *file=fopen("TOF.index","wb");
+    TOF_open(TOF_FILE_NAME,&tof,'r');
+    if (tof.file==NULL){
+        printf("cant open file tof\n");
+        return;
+    }
+    TOF_primaryIndex(&tof,file,tab,&primaryIndexSize);
+    printf("creatio  is DONE! \n");    
 }

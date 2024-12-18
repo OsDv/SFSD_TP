@@ -63,14 +63,15 @@ typedef struct {
     FILE *file;
     TOF_Header header;
 } TOF_FILE;
-typedef struct {
-	struct {char *birthDate;TOF_SI_BirthDate_LIST *list;} tab[TOF_MAX_INDEX];
-	int size;
-}TOF_SI_BirthDate;
 typedef struct TOF_SI_BirthDate_L {
 	int id;
 	struct TOF_SI_BirthDate_L* next;
 }TOF_SI_BirthDate_LIST;
+typedef struct {
+	struct {char *birthDate;TOF_SI_BirthDate_LIST *list;} tab[TOF_MAX_INDEX];
+	int size;
+}TOF_SI_BirthDate;
+
 typedef struct  {
  int block;
  int pos; 
@@ -102,6 +103,7 @@ void TOF_shiftSIonBirthDate(TOF_SI_BirthDate *index , int pos ,int step);
 void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id );
 void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest);
 void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file);
+void TOF_primaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab );
 #endif
 /*
 
