@@ -1,5 +1,9 @@
 #include <TOF.h>
 #include <time.h>
+
+TOF_SI_BirthDate BirthDateIndex;
+TOF_PI_ID TOF_primaryIndex[10000];
+int primaryIndexSize;
 struct tm theTime;
 int TOF_NUMBER_OF_READS=0;
 int TOF_NUMBER_OF_WRITES=0;
@@ -13,7 +17,7 @@ int TOF_open(const char *name , TOF_FILE *file , char mode){
     file->header.NR=0;
         break;
     case 'r':
-    file->file= fopen(name,"rb");
+    file->file= fopen(name,"rb+");
 	fseek(file->file , 0 , SEEK_SET );
 	fread(&(file->header) , TOF_HEADER_SIZE , 1,file->file);
         break;
@@ -324,16 +328,6 @@ void parseLine(char *line, char fields[NUM_FIELDS][MAX_FIELD_LENGTH]) {
     }
     fields[field_index][char_index] = '\0'; // End the last field
 }
-
-
-
-
-
-
-
-
-
-
 int TOF_recordFragmentedSpace(Student s){
     int i=0;
     i+=(MAX_NAME_SIZE-strlen(s.firstName));
@@ -426,26 +420,120 @@ void TOF_printFile(TOF_FILE *f){
     fprintf(stderr,"done");
 }
 void TOF_printStudent(Student s){
-    printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
+    printf("%d|%-*s|%-*s|%.10s|%s\n",s.id,MAX_NAME_SIZE,s.firstName,MAX_NAME_SIZE,s.lastName,s.birthDate,s.birthCity);
+}
+bool TOF_deleteRecord(TOF_FILE *f,int id)
+{
+TOF_Buffer buffer;
+bool found;
+int i,j;
+TOF_search(f,id,&found,&i,&j,NULL);
+if (!found) return false; //NOT FOUND 
+TOF_readBlock(f,i,&buffer);
+buffer.del[j]=true;
+buffer.ND++;
+buffer.NR--;
+TOF_writeBlock(f,i,&buffer);
+return true;
+}
+void TOF_writeLineTodeleteLog(FILE *log ,int id,bool status){
+    if (status){
+        fprintf(log,"%d|DELETED|%d read %d write\n",id,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
+    } else {
+        fprintf(log,"%d|not-found|%d read %d write\n",id,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);        
+    }
+}
+void TOF_deletefromfile(TOF_FILE *tof , FILE *list , FILE *logFile) //list == delete_students.csv
+{
+    
+if ((tof==NULL)||(list==NULL))  return;
+    TOF_Buffer buffer;
+    TOF_Header header;
+    TOF_getHeader(tof,&header);
+    char line[MAX_LINE_SIZE];
+    int lineNumber=0;
+    int id;
+    int numberNotFound=0;
+    int numberDeleted=0;
+    bool DeleteStatus;
+    // Skip the first line
+    fgets(line,MAX_LINE_SIZE, list);
+    
+    int TotalWrites=0;
+    int TotalReads=0;
+    while(fgets(line,MAX_LINE_SIZE, list))
+    {
+    TOF_NUMBER_OF_READS=0;
+    TOF_NUMBER_OF_WRITES=0;
+    id=atoi(line);
+    DeleteStatus=TOF_deleteRecord(tof,id);
+    if (DeleteStatus) numberDeleted++ ; else numberNotFound++;//for summary
+    TOF_writeLineTodeleteLog(logFile,id,DeleteStatus);
+    //showProgressBar(lineNumber++,NumberOfLinesDelete);
+    TotalReads+=TOF_NUMBER_OF_READS;
+    TotalWrites+=TOF_NUMBER_OF_WRITES;
+ 
+    }
+    header.ND+=numberDeleted;
+    header.NR-=numberDeleted;
+    TOF_setHeader(tof,&header);
+    int LoadingFactor=header.NR*100/(header.NB*MAX_RECORDS);
+    TOF_deleteWriteSummaryToLog(logFile,TotalReads,TotalWrites,LoadingFactor,numberDeleted,numberNotFound); 
+    TOF_NUMBER_OF_READS=TotalReads;
+    TOF_NUMBER_OF_WRITES=TotalWrites;
+    return;
+}
+
+void TOF_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int LoadingFactor,int deleted,int notFound){
+    fputs("\n====\tDelete Summary\t====\n",log);
+    fprintf(log,"Total deleted: %d\n",deleted);
+    fprintf(log,"Total not found: %d\n",notFound);
+    fprintf(log,"Total reads %d\twrites %d\n",totalR,totalW);
+    fprintf(log,"New Loading Factor: %d %%\n",LoadingFactor);
 }
 /*  TP PRESENCIEL   */
+void TOF_searchInterBlock(TOF_Buffer buffer ,int id ,int *pos, bool *found){
+    int i;
+    int inf=0;
+    int sup= buffer.NR;
+    (*found)=false;
+    while (!(*found)&&(inf<=sup))
+    {
+        i=(int)((inf+sup)/2);
+        if (id==buffer.data[i].id){
+            (*found)=true;
+            (*pos)=i;
+        }else{
+            if (id<buffer.data[i].id)sup=i-1;
+            else inf = i+1;
+        }
+    }
+    if (*found && buffer.del[i]) (*found)=false;
+    if (!(*found)) (*pos)=inf;
+    
+}
 int CompareDates(char *date1 , char *date2){
     int result;
-    result = strncmp(&(date1[6]),&(date1[6]),4);
+    result = strncmp(&(date1[6]),&(date2[6]),4);
     if (result!=0) return result;
-    result = strncmp(&(date1[3]),&(date1[3]),2);
+    result = strncmp(&(date1[3]),&(date2[3]),2);
     if (result!=0) return result;    
-    result = strncmp(&(date1[0]),&(date1[0]),2);
+    result = strncmp(&(date1[0]),&(date2[0]),2);
     return result;
 }
 // 11/11/1111
 void TOF_searchSIonBirthDate(TOF_SI_BirthDate *index,char *date,int id , int *pos , bool *found){
+    (*found)=false;
+    if (index->size==0){
+        (*pos)=0;
+        return;
+    }
     int sup,inf;
-    sup = index->size;
+    sup = index->size-1;
     inf =0;
-    bool stop=false;
     int result;
     int i;
+    bool stop=false;
     TOF_SI_BirthDate_LIST *list;
     while (!stop && sup>=inf){
         i= (int)((sup+inf)/2);
@@ -458,14 +546,16 @@ void TOF_searchSIonBirthDate(TOF_SI_BirthDate *index,char *date,int id , int *po
                 if (list->id==id){
                     (*found)=true;
                 }
+                list=list->next;
             }
+            inf=i;
             stop=true;
         }
     }
     (*pos)=inf;
 }
 void TOF_shiftSIonBirthDate(TOF_SI_BirthDate *index , int pos ,int step){
-    for (int i=pos;i<index->size;i++){
+    for (int i=index->size-1;i>=pos;i--){
         index->tab[i+step]=index->tab[i];
     }
 }
@@ -476,34 +566,87 @@ void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id ){
     if (found) return;
     TOF_SI_BirthDate_LIST *new=malloc(sizeof(TOF_SI_BirthDate_LIST));
     new->id=id;
-    if (!strncmp(date,index->tab[pos].birthDate,DATE_SIZE)){
-        TOF_SI_BirthDate_LIST * list=index->tab[pos].list;
+    new->next=NULL;
+    if (pos == index->size){
+        strncpy((index->tab[pos].birthDate),date,DATE_SIZE);
         index->tab[pos].list=new;
-        new->next=list;
+        index->size++;
     } else {
-        TOF_shiftSIonBirthDate(index,pos,1);
-        strncpy(&(index->tab[pos].birthDate),date,DATE_SIZE);
-        index->tab[pos].list=new;
+        if (!strncmp(date,index->tab[pos].birthDate,DATE_SIZE)){
+            TOF_SI_BirthDate_LIST * list=index->tab[pos].list;
+            index->tab[pos].list=new;
+            new->next=list;
+        } else {
+            TOF_shiftSIonBirthDate(index,pos,1);
+            strncpy((index->tab[pos].birthDate),date,DATE_SIZE);
+            index->tab[pos].list=new;
+            index->size++;
+        }
     }
+
 }
 void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest){
     TOF_Header header;
     TOF_getHeader(file,&header);
     TOF_Buffer buffer;
     int index;
+    int count=0;
     for(int i=1;i<=header.NB;i++){
         TOF_readBlock(file,i,&buffer);
-        for (int j=0;j<=buffer.NR;j++){
-            if (!buffer.del[j]){
+        for (int j=0;j<buffer.NR;j++){
+            if ((!buffer.del[j])&&(buffer.data[j].birthDate[0]!='\0')){
                 TOF_insertSIonBirthDate(dest,buffer.data[j].birthDate,buffer.data[j].id);
             }
         }
     }
 }
-void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file){
-    fwrite(index,sizeof(TOF_SI_BirthDate),1,file);
+void TOF_printSIonBirthDate(TOF_SI_BirthDate *src){
+    TOF_SI_BirthDate_LIST *list;
+    for (int i=0;i<src->size;i++){
+        printf("%.*s|",DATE_SIZE,src->tab[i].birthDate);
+        list=src->tab[i].list;
+        while(list){
+            printf("%d|",list->id);
+            list=list->next;
+        }
+        printf("\n");
+    }
 }
-void TOF_primaryIndex(TOF_FILE *f, FILE* *dest,int* size )
+/*
+* to save the index in file we transform each linked list to an array 
+* and save it's size with the correspending date 
+*/
+void TOF_transformToArraySIonBirthDate(TOF_SI_BirthDate *index,TOF_SI_BirthDate_file *dest){
+    int *id_array;
+    TOF_SI_BirthDate_LIST *list;
+    int n=0;
+    for (int i=0;i<index->size;i++){
+        strncpy(dest[i].date,index->tab[i].birthDate,DATE_SIZE);
+        list=index->tab[i].list;
+        n=0;
+        while (list!=NULL){
+            n++;
+            list=list->next;
+        }
+        dest[i].n=n;
+        id_array = malloc(sizeof(int)*n);
+        list=index->tab[i].list;
+        for (int j=0;j<n;j++){
+            id_array[j]=list->id;
+            list=list->next;
+        }
+    }
+}
+void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file){
+    TOF_SI_BirthDate_file *arrayOfIndex=malloc(sizeof(arrayOfIndex)*(index->size));
+    TOF_transformToArraySIonBirthDate(index,arrayOfIndex);
+    for(int i=0;i++;i<index->size){
+        fwrite(arrayOfIndex[i].date,DATE_SIZE,1,file);
+        fwrite(&(arrayOfIndex[i].n),sizeof(int),1,file);
+        fwrite(arrayOfIndex[i].id_array,sizeof(int),arrayOfIndex[i].n,file);
+    }
+}
+void TOF_creatPrimaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab )
 {
 TOF_Header header;
 TOF_getHeader(f,&header);
@@ -512,8 +655,7 @@ int i;
 int j;
 int index=0;
 TOF_PI_ID IndexBuf;
-TOF_PI_ID tab[TOF_MAX_INDEX];
-for ( i=0; i <= header.NB; i++)
+for ( i=1; i <= header.NB; i++)
 {
  TOF_readBlock(f,i,&buffer);
  j=buffer.NR;
@@ -526,11 +668,68 @@ for ( i=0; i <= header.NB; i++)
  IndexBuf.id=buffer.data[j].id;
  IndexBuf.block=i;
  IndexBuf.pos=j;
- index++;
- tab[index]=IndexBuf;
+ tab[index++]=IndexBuf;
  }
- else {index--;}
 }
 (*size)=index;
+fwrite(tab,sizeof(TOF_PI_ID),10000,dest);
+}
+void TOF_searchPrimaryIndex(int id , int *block){
+    int inf =0;
+    int sup=primaryIndexSize-1;
+    bool stop=false;
+    int i;
+    while(!stop){
+        i=(int)((sup+inf)/2);
+        if (id<TOF_primaryIndex[i].id)sup=i-1;
+        else inf=i+1;
+        if (id==TOF_primaryIndex[i].id){
+            stop=true;
+            (*block)=TOF_primaryIndex[i].block;
+        } else{
+            if (sup<inf){
+                stop=true;
+                (*block)=TOF_primaryIndex[inf].block;
+            }
+        }
+    }
+}
+void TOF_BirthDateIntervalQuery(TOF_FILE *tof , TOF_PI_ID *pIndex , TOF_SI_BirthDate *sIndex,char* inf,char* sup){
+    TOF_NUMBER_OF_READS=0;
+    TOF_NUMBER_OF_WRITES=0;
+    ID_LIST *head=NULL,*list;
+    TOF_SI_BirthDate_LIST *indexList;
+    int pos;
+    bool found;
+    int QuerySize=0;
+    TOF_searchSIonBirthDate(sIndex,inf,0,&pos,&found);
+    while(CompareDates(sIndex->tab[pos].birthDate,sup)<=0){
+        indexList=sIndex->tab[pos].list;
+        while(indexList){
+            IDlist_insertOrd(&head,indexList->id);
+            indexList=indexList->next;
+            QuerySize++;
+        }
+        pos++;
+    }
+    if (QuerySize==0)return;
+    int block,offset;
+    int oldBlock=-1;
+    TOF_Buffer buffer;
+    list=head;
+    while(list){
+        TOF_searchPrimaryIndex(list->id,&block);
+        if (block!=oldBlock){
+            TOF_readBlock(tof,block,&buffer);
+            oldBlock=block;
+        }
+        TOF_searchInterBlock(buffer,list->id,&offset,&found);
+        if (found)TOF_printStudent(buffer.data[offset]);
+        
+        list=list->next;
+        free(head);
+        head=list;
+    }
+    printf("THE QUERY TOOK: %d READ %d WRITE\n",TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
 
 }

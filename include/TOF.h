@@ -25,6 +25,8 @@
 
 #define TOF_FILE_NAME "./result/Students_Infos.TOF\0"
 #define TOF_LOG_FILE "./result/TOF_LOG.txt\0"
+#define TOF_SI_BirthDate_FILE_NAME "./index/TOF_SI_BirthDate.index\0"
+#define TOF_PRIMARY_INDEX_FILE_NAME "./index/TOF.index\0"
 extern int TOF_NUMBER_OF_READS;
 extern int TOF_NUMBER_OF_WRITES;
 
@@ -68,15 +70,23 @@ typedef struct TOF_SI_BirthDate_L {
 	struct TOF_SI_BirthDate_L* next;
 }TOF_SI_BirthDate_LIST;
 typedef struct {
-	struct {char *birthDate;TOF_SI_BirthDate_LIST *list;} tab[TOF_MAX_INDEX];
+	struct {char birthDate[DATE_SIZE];TOF_SI_BirthDate_LIST *list;} tab[TOF_MAX_INDEX];
 	int size;
 }TOF_SI_BirthDate;
-
+typedef struct {
+	char date[DATE_SIZE];
+	int n;// number of ids has the same date of birth
+	int *id_array;
+}TOF_SI_BirthDate_file;
 typedef struct  {
  int block;
  int pos; 
  int id ;
 } TOF_PI_ID;
+extern TOF_SI_BirthDate BirthDateIndex;
+extern TOF_PI_ID TOF_primaryIndex[10000];
+extern int primaryIndexSize;
+
 int TOF_setHeader(TOF_FILE *f , TOF_Header *header);
 int TOF_getHeader(TOF_FILE *f , TOF_Header *header);
 FILE * TOF_getFile(TOF_FILE *f);
@@ -95,6 +105,10 @@ void TOF_printFile(TOF_FILE *f);
 enum TOF_INSERT_STATUS TOF_inserWithLoadingFactor(TOF_FILE *f , Student e);
 int TOF_recordFragmentedSpace(Student s);
 void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int fragment, int *lineStat , int *insertStat );
+bool TOF_deleteRecord(TOF_FILE *f,int id) ;
+void TOF_writeLineTodeleteLog(FILE *log ,int id,bool status) ;
+void TOF_deletefromfile(TOF_FILE *tof , FILE *list , FILE *logFile); 
+void TOF_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int LF,int deleted,int notFound);
 /*
 		TP presenciel
 */
@@ -102,8 +116,13 @@ void TOF_searchSIonBirthDate(TOF_SI_BirthDate *index,char *date,int id , int *po
 void TOF_shiftSIonBirthDate(TOF_SI_BirthDate *index , int pos ,int step);
 void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id );
 void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest);
+void TOF_transformToArraySIonBirthDate(TOF_SI_BirthDate *index,TOF_SI_BirthDate_file *dest);
+void TOF_printSIonBirthDate(TOF_SI_BirthDate *src);
 void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file);
-void TOF_primaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab );
+void TOF_creatPrimaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab );
+void TOF_BirthDateIntervalQuery(TOF_FILE *tof , TOF_PI_ID *pIndex , TOF_SI_BirthDate *sIndex,char* inf,char* sup);
+void TOF_searchPrimaryIndex(int id , int *block);
+void TOF_searchInterBlock(TOF_Buffer buffer ,int id ,int *pos, bool *found);
 #endif
 /*
 

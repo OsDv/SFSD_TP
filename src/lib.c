@@ -31,3 +31,16 @@ void ConfigProgram(){
     fgets(buffer,MAX_LINE_SIZE,f);
     sscanf(buffer,"%d",&NumberOfLinesDelete);
 }
+
+void IDlist_insertOrd(ID_LIST **head , int id){
+    ID_LIST **list=head;
+    ID_LIST *new,*tmp;
+    new=malloc(sizeof(ID_LIST));
+    new->id=id;
+    new->next=NULL;
+    while((*list) && (*list)->id<id){
+        list=&((*list)->next);
+    }
+    new->next=(*list);
+    (*list)=new;
+}

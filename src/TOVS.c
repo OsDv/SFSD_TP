@@ -189,8 +189,7 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
         header.NB=1;
         header.NC=size;
         TOVS_setHeader(f,&header);
-                if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
-        else return INSERT_SUCCUSFUL;
+        return INSERT_SUCCUSFUL;
     }
     // if file not empty we check if element exits in the file if yes we dont insert duplicat
     TOVS_search(f,key,&found,&i,&j);
@@ -209,8 +208,7 @@ enum InsertStatus TOVS_insert(TOVS_FILE *f , char *src , int size){
 // must update header before call writeString because shift cause modification in file
     // after shift or in case we dont need shift we write the record to the file
     TOVS_writeString(f,src,size,i,j,&strudle);
-    if (strudle) return INSERT_SUCCUSFUL_STRUDLE;
-    else return INSERT_SUCCUSFUL;
+    return INSERT_SUCCUSFUL;
 }
 
 int TOVS_shiftRight(TOVS_FILE *f , int block , int offset , int step){
@@ -360,7 +358,7 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
     fgets(line,MAX_LINE_SIZE,src);//skip the first line of the file contains fields titles
     int totalRead=0,totalWrite=0;
     int insertSummary[N_INSERT_STATUS]={0};
-    int linesStatusSummary[N_INSERT_STATUS]={0};
+    int linesStatusSummary[N_LINE_STATUS]={0};
 
 
     while(fgets(line,MAX_LINE_SIZE,src)!=NULL){
@@ -383,8 +381,8 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
         /*if (lineNumber>1650){
             printf("================================\n");
             printFile((*dest));
-            printf("%d\n",lineNumber);
         }*/
+            // printf("%d\n",lineNumber);
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
@@ -398,9 +396,6 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
         {
         case INSERT_SUCCUSFUL:
             fprintf(f,"+%*d:INSERTED:NON-STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
-            break;
-        case INSERT_SUCCUSFUL_STRUDLE:
-            fprintf(f,"+%*d:INSERTED:STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
             break;
         case RECORD_EXISTS:
             fprintf(f,"-%*d:NOT-INSERTED:DUPLICAT:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
@@ -422,6 +417,9 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
         case LINE_MISSING_ID:
             fprintf(f,"*%*d:NOT-INSERTED:MISSING-ID:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
             break;
+        case LINE_MISSING_YEAR:
+            fprintf(f,"*%*d:NOT-INSERTED:MISSING-YEAR:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
+            break;
         
         default:
             break;
@@ -442,14 +440,15 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     fprintf(f,"number of blocks: %d block\n",header.NB);
     // insertion log
     fputs("\t2) INSERTION LOG :\n",f);
-    fprintf(f,"number of inserted records: %d \n",inserSummary[INSERT_SUCCUSFUL]+inserSummary[INSERT_SUCCUSFUL_STRUDLE]);
-    fprintf(f,"number of duplicat not inserted: %d",inserSummary[RECORD_EXISTS]);
-    fprintf(f,"average records per block: %.2f\n",(double)(inserSummary[INSERT_SUCCUSFUL]+inserSummary[INSERT_SUCCUSFUL_STRUDLE])/(double)header.NB);
+    fprintf(f,"number of inserted records: %d \n",inserSummary[INSERT_SUCCUSFUL]);
+    fprintf(f,"number of duplicat not inserted: %d\n",inserSummary[RECORD_EXISTS]);
+    fprintf(f,"average records per block: %.2f\n",(double)(inserSummary[INSERT_SUCCUSFUL])/(double)header.NB);
     // source file status
     fputs("\t2) SOURCE LOG :\n",f);
     fprintf(f,"number of valid lines: %d\n",linesSummary[VALID_LINE]);
     fprintf(f,"number of empty lines: %d\n",linesSummary[EMPTY_LINE]);
     fprintf(f,"number of lines missing id: %d\n",linesSummary[LINE_MISSING_ID]);
+    fprintf(f,"number of lines missing studying year: %d\n",linesSummary[LINE_MISSING_YEAR]);
     fprintf(f,"number of lines missng description: %d\n",linesSummary[LINE_MISSING_DESCRIPTION]);
     
     
@@ -519,12 +518,12 @@ bool TOVS_isDeleted(TOVS_Buffer buffer , TOVS_Buffer buffer1 , int j){
     if (MAX_CHARS_TOVS-j>3) return (buffer.data[j+3]=='1');
     else return (buffer1.data[j-MAX_CHARS_TOVS+3]=='1');
 }
-void TOVS_delete(TOVS_FILE *file ,TOVS_Buffer buffer , TOVS_Buffer buffer1,int j){
+void TOVS_delete(TOVS_FILE *file ,TOVS_Buffer *buffer , TOVS_Buffer *buffer1,int j){
     if (MAX_CHARS_TOVS-j>3) {
-        (buffer.data[j+3]='1');
+        (buffer->data[j+3]='1');
     }
     else {
-        (buffer1.data[j-MAX_CHARS_TOVS+3]='1');    
+        (buffer1->data[j-MAX_CHARS_TOVS+3]='1');    
     }
 }
 bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size){
@@ -533,15 +532,15 @@ bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size){
     TOVS_Buffer buffer,buffer1;
     TOVS_search(file,id,&found,&i,&j);
     if (!found)return false;
-    if (MAX_CHARS_TOVS-j>9) {
+    if (MAX_CHARS_TOVS-j>3) {
         TOVS_readBlock(file,i,&buffer);
-        TOVS_delete(file,buffer,buffer,j);
+        TOVS_delete(file,&buffer,&buffer,j);
         TOVS_writeBlock(file,i,&buffer);
         (*size)=TOVS_getSize(buffer,buffer1,j);
     } else {
         TOVS_readBlock(file,i,&buffer);
         TOVS_readBlock(file,i+1,&buffer1);
-        TOVS_delete(file,buffer,buffer1,j);  
+        TOVS_delete(file,&buffer,&buffer1,j);  
         TOVS_writeBlock(file,i+1,&buffer1);
         (*size)=TOVS_getSize(buffer,buffer1,j);
     }

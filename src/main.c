@@ -21,6 +21,7 @@ int main() {
                 break;
             case 3:
                 printf("Deleting selected records TOF...\n");
+                TOFdeleteSelected();
                 // Add function call for deleting records
                 break;
                 break;
@@ -30,19 +31,19 @@ int main() {
                 TOVSDeleteFromFile();
                 break;
             case 5:
-                printf("Displaying information about the files...\n");
-                // Add function call for displaying file information
-                TOF_FILE toff;
-                TOF_open(TOF_FILE_NAME,&toff,'r');
-                TOF_printFile(&toff);
+                printf("Creating indexes for TOF (primary/BirthDate)...\n");
+                creatTOF_primaryIndex();
+                creatTOF_SIBirthDate();
                 break;
             case 6:
-                printf("Displaying status...\n");
-                checkStatus();
-                // Add function call for displaying status
-                // printStudentInfosMenu();
+                TOF_BirthDateQueryMenu();
                 break;
-            case 7:printStudentInfosMenu();
+            case 7:
+                printf("Displaying information about the files...\n");
+                PrintFilesInfos();
+                // Add function call for displaying file information
+                break;
+            case 8:printStudentInfosMenu();
                 break;
             case 0:
                 printf("Exiting the program...\n");

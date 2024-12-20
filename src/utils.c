@@ -1,18 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <utils.h>
-TOF_SI_BirthDate BirthDateIndex;
-TOF_PI_ID tab[10000];
-int primaryIndexSize;
+
 void printMenu() {
     printf("Select an option:\n");
     printf("1. Create TOF file\n");
     printf("2. Create TOVS file\n");
     printf("3. Delete selected records TOF\n");
     printf("4. Delete selected records TOVS\n");
-    printf("5. Information about the files\n");
-    printf("6. Status\n");
-    printf("7. Get Student Infos\n");
+    printf("5. Create TOF indexes (primary/BirthDate)\n");
+    printf("6. search interval by BirthDate\n");
+    printf("7. Information about the files\n");
+    printf("8. Get Student Infos\n");
     printf("0. Exit\n");
     printf("Enter your choice: ");
 }
@@ -117,7 +116,9 @@ void creatTOF_SIBirthDate(){
         return;
     }
     TOF_creatSIonBirthDate(&tof,&BirthDateIndex);
-    printf("creatio  is DONE! \n");
+    printf("Secondary Index created succusfully \n");
+    // TOF_printSIonBirthDate(&BirthDateIndex);
+    TOF_close(&tof);
 }
 void creatTOF_primaryIndex(){
     TOF_FILE tof;
@@ -127,6 +128,68 @@ void creatTOF_primaryIndex(){
         printf("cant open file tof\n");
         return;
     }
-    TOF_primaryIndex(&tof,file,tab,&primaryIndexSize);
-    printf("creatio  is DONE! \n");    
+    TOF_creatPrimaryIndex(&tof,file,&primaryIndexSize,TOF_primaryIndex);
+    printf("Primary Index created succusfully \n");    
+    fclose(file);
+    TOF_close(&tof);
+}
+void TOF_BirthDateQueryMenu(){
+    if (primaryIndexSize==0 || BirthDateIndex.size==0){
+        printf("Create Index first \n");
+        return;
+    }
+    TOF_FILE tof;
+    TOF_open(TOF_FILE_NAME,&tof,'r');
+    char date1[DATE_SIZE],date2[DATE_SIZE];
+    printf("Enter the first date(dd/mm/yyyy) :");
+    // scanf("%.*s",DATE_SIZE,date1);
+    char c;
+    int i=0;
+    while ((c=fgetc(stdin))!=EOF && c!='\n'); 
+    while ((c=fgetc(stdin))!=EOF && c!='\n')
+    {
+        date1[i++]=c;
+    }
+    
+    printf("\nEnter the scond date(dd/mm/yyyy) :");
+    i=0;
+    while ((c=fgetc(stdin))!=EOF && c!='\n')
+    {
+        date2[i++]=c;
+    }
+    // scanf("%.*s",DATE_SIZE,date2);
+    TOF_BirthDateIntervalQuery(&tof,TOF_primaryIndex,&BirthDateIndex,date1,date2);
+    TOF_close(&tof);
+
+}
+void TOFdeleteSelected()
+{
+
+    TOF_FILE  tof ;
+    FILE * logdel=fopen(TOF_DELETE_LOG_FILE,"w");
+    TOF_open(TOF_FILE_NAME,&tof,'a');               
+    FILE* DelList= fopen(DELETE_FILE_NAME,"r");
+    TOF_deletefromfile(&tof,DelList,logdel);
+    fclose(DelList);
+    fclose(logdel);
+    TOF_close(&tof);
+
+}
+
+void PrintFilesInfos(){
+    TOVS_FILE tovs;
+    TOF_FILE tof;
+    TOF_Header tofHeader;
+    TOVS_Header tovsHeader;
+    TOF_open(TOF_FILE_NAME,&tof,'r');
+    TOVS_open(TOVS_FILE_NAME,&tovs,'r');
+    TOVS_getHeader(&tovs,&tovsHeader);
+    TOF_getHeader(&tof,&tofHeader);
+    printf("TOF INFOS:\n");
+    printf("Number of blocks: %d\n",tofHeader.NB);
+    printf("Number of records: %d\n",tofHeader.NR);
+    printf("Number of deleted records: %d\n",tofHeader.ND);
+    printf("Loading factor: %.2f\n",(float)((tofHeader.NR-tofHeader.ND)/tofHeader.NB));
+    printf("TOVS INFOS:\n");
+    printf("Number of blocks: %d\n",tovsHeader.NB);
 }
