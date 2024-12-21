@@ -314,34 +314,39 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
 }
 
 enum LineStatus checkValidLine(char *line){
+    enum LineStatus status=0;
     int index=0;
-    if (line==NULL || *line=='\n' || *line=='\0') return EMPTY_LINE;
+    if (line==NULL || *line=='\n' || *line=='\0') status |= EMPTY_LINE;
     // check if the all the first 5 characters are numerical values represent the id else the line consdired as invalid
     while(line[index]!=';' && index<TOVS_RECORDS_id_WIDTH){
-        if ( (line[index]<'0') || (line[index]>'9')) return LINE_MISSING_ID;
+        if ( (line[index]<'0') || (line[index]>'9')) status|= LINE_MISSING_ID;
         index++;
     }
     // check if the separator ';' present after the the id else the id considired as invalid 
-    if (line[index++]!=',') return LINE_MISSING_ID;
+    if (line[index++]!=',') status|= LINE_MISSING_ID;
     // read and check grade
     int year,zero,n;
     n=sscanf(&(line[index]),"%d.%d",&year,&zero);
-    if (year<1 || year>5 || zero!=0 || n!=2) return LINE_MISSING_YEAR;
+    if (year<1 || year>5 || zero!=0 || n!=2) status|= LINE_MISSING_YEAR;
     // check if the description string (skills) is not empty else the line considred invalide
 
     index+=4;
-    if (line[index]=='\n' || line[index]=='\0') return LINE_MISSING_DESCRIPTION;
+    if (line[index]=='\n' || line[index]=='\0') status|= LINE_MISSING_DESCRIPTION;
     // the line passes all the test then it is valide 
-    return VALID_LINE;
-    
-
+    if (status==0) status=VALID_LINE;
+    return status;
 }
 int TOVS_sizeToString(int n , char * dest){
     dest[2] = n%10 + '0';
     dest[1] = (n/10)%10 +'0';
     dest[0] = (n/100)%10 +'0';
 }
-
+void TOVS_updateLinesSummary(int *summary,enum LineStatus status){
+        for (int i=0;i<N_LINE_STATUS;i++){
+        if (status%2)summary[i]++;
+        status=status>>1;
+    }
+}
 int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
     if ((dest==NULL)||(src==NULL)) return -1;
     TOVS_Header header={0,0};
@@ -369,62 +374,40 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
 //      initialise number read/write with 0 for each line read from source file
         TOVS_NUMBER_OF_READS=0;
         TOVS_NUMBER_OF_WRITES=0;
-        // insert Valid Line
-        // if (lineStatus==VALID_LINE){
-            TOVS_lineToString(line,tof,recordStr,lineStatus,&size);
-            insertStatus = TOVS_insert(dest,recordStr,size);
-        // }
+        // format informations in string to insert
+        TOVS_lineToString(line,tof,recordStr,lineStatus,&size);
+        // insert the the lines with correct id
+        if (lineStatus==LINE_MISSING_ID) {
+            insertStatus=NOT_INSERTED;
+        } else insertStatus = TOVS_insert(dest,recordStr,size);
+        // write informations to log
         TOVS_writeLineToLog(logFile ,lineNumber ,insertStatus,lineStatus);
         totalRead+=TOVS_NUMBER_OF_READS;
         totalWrite+=TOVS_NUMBER_OF_WRITES;
         insertSummary[insertStatus]++;
-        linesStatusSummary[lineStatus]++;
+        TOVS_updateLinesSummary(linesStatusSummary,lineStatus);
         showProgressBar(lineNumber,NumberOfLinesCSV2);
-        /*if (lineNumber>1650){
-            printf("================================\n");
-            printFile((*dest));
-        }*/
-            // printf("%d\n",lineNumber);
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
 }
 
 void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , enum LineStatus lineS){
-    if (lineS==VALID_LINE){
-        switch (insertS)
-        {
-        case INSERT_SUCCUSFUL:
-            fprintf(f,"+%*d:INSERTED:NON-STRUDLE:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
-            break;
-        case RECORD_EXISTS:
-            fprintf(f,"-%*d:NOT-INSERTED:DUPLICAT:%*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
-            break;
-        default:
-            break;
-        }
-    } else {
-        switch (lineS)
-        {
-        case EMPTY_LINE:
-            fprintf(f,"*%*d:NOT-INSERTED:EMPTY-LINE:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
-            break;
-        
-        case LINE_MISSING_DESCRIPTION   :
-            fprintf(f,"*%*d:INSERTED:MISSING-DESCRIPTION:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);            
-            break;
-        
-        case LINE_MISSING_ID:
-            fprintf(f,"*%*d:NOT-INSERTED:MISSING-ID:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
-            break;
-        case LINE_MISSING_YEAR:
-            fprintf(f,"*%*d:INSERTED:MISSING-YEAR:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
-            break;
-        
-        default:
-            break;
-        }
+    if (insertS==RECORD_EXISTS){
+        fprintf(f,"- %*d | NOT-INSERTED | DUPLICAT | %*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
+        return;
     }
+    if (insertS==NOT_INSERTED)fprintf(f,"- %*d | NOT-INSERTED | ",lineNumber);
+    else fprintf(f,"+ %*d | INSERTED | ",lineNumber);
+    if (lineS==VALID_LINE) fprintf(f,"VALID_LINE | ");
+    else {
+        fprintf(f,"MISSING: ");
+        if (lineS&LINE_MISSING_ID)fprintf(f,"ID ");
+        if (lineS&LINE_MISSING_DESCRIPTION)fprintf(f,"DESCRIPTION ");
+        if (lineS&LINE_MISSING_YEAR,EMPTY_LINE)fprintf(f,"EMPTY_LINE ");
+    }
+    fprintf(f,"| %4dR %4dW\n",TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
+    
 }
 
 void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *linesSummary){
@@ -442,14 +425,15 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     fputs("\t2) INSERTION LOG :\n",f);
     fprintf(f,"number of inserted records: %d \n",inserSummary[INSERT_SUCCUSFUL]);
     fprintf(f,"number of duplicat not inserted: %d\n",inserSummary[RECORD_EXISTS]);
+    fprintf(f,"number of missing id not inserted: %d\n",inserSummary[NOT_INSERTED]);
     fprintf(f,"average records per block: %.2f\n",(double)(inserSummary[INSERT_SUCCUSFUL])/(double)header.NB);
     // source file status
     fputs("\t2) SOURCE LOG :\n",f);
-    fprintf(f,"number of valid lines: %d\n",linesSummary[VALID_LINE]);
-    fprintf(f,"number of empty lines: %d\n",linesSummary[EMPTY_LINE]);
-    fprintf(f,"number of lines missing id: %d\n",linesSummary[LINE_MISSING_ID]);
-    fprintf(f,"number of lines missing studying year: %d\n",linesSummary[LINE_MISSING_YEAR]);
-    fprintf(f,"number of lines missng description: %d\n",linesSummary[LINE_MISSING_DESCRIPTION]);
+    fprintf(f,"number of valid lines: %d\n",linesSummary[(int)log2(VALID_LINE)]);
+    fprintf(f,"number of lines missing id: %d\n",linesSummary[(int)log2(LINE_MISSING_ID)]);
+    fprintf(f,"number of lines missing studying year: %d\n",linesSummary[(int)log2(LINE_MISSING_YEAR)]);
+    fprintf(f,"number of lines missng description: %d\n",linesSummary[(int)log2(LINE_MISSING_DESCRIPTION)]);
+    fprintf(f,"number of empty lines: %d\n",linesSummary[(int)log2(EMPTY_LINE)]);
     
     
 

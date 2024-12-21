@@ -98,8 +98,10 @@ int TOF_search(TOF_FILE *f, int key, bool *found, int *i, int *j, Student *stude
                 (*j) = (block_low + block_high) / 2;
 
                 if (key == buffer.data[(*j)].id && !buffer.del[(*j)]) {
-                    (*found) = true;
-                    if (student) (*student) = buffer.data[(*j)]; // Copy student data
+                    if(!buffer.del[(*j)]){
+                        (*found) = true;
+                        if (student) (*student) = buffer.data[(*j)]; // Copy student data
+                    }
                     return EXIT_SUCCESS;
                 }
 
@@ -283,7 +285,7 @@ void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int frag
     fprintf(f,"fragmented space: %d Byte\n",fragment);
     // insertion performance
     fputs("\t2) INSERTION LOG :\n",f);
-    fprintf(f,"total read operation: %d\n",Totalr);
+    fprintf(f,"total read  operation: %d\n",Totalr);
     fprintf(f,"total write operation: %d\n",Totalw);
     // source file status
     fputs("\t2) SOURCE LOG :\n",f);
@@ -293,6 +295,7 @@ void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int frag
     fprintf(f,"number of lines missing last name: %d\n",lineStat[(int)log2(TOF_MISSING_LAST_NAME)]);
     fprintf(f,"number of lines missing birth date: %d\n",lineStat[(int)log2(TOF_MISSING_BIRTH_DATE)]);    
     fprintf(f,"number of lines missing birth city : %d\n",lineStat[(int)log2(TOF_MISSING_BIRTH_CITY)]) ;       
+    fprintf(f,"number of EMPTY lines : %d\n",lineStat[(int)log2(TOF_EMPTY_LINE)]) ;           
     fprintf(f,"number of duplicates id: %d\n",insertStat[TOF_RECORD_EXISTS]);
     int sum=0 ;
     for (int i =0;i<TOF_N_INSERT_STATUS;i++)sum+=insertStat[i];
@@ -352,16 +355,10 @@ void TOF_LineToRecord(char* line,Student* student,enum TOF_LINE_STATUS *LineStat
     if ((*LineStatus)!=TOF_VALID_LINE) (*LineStatus)&=(~TOF_VALID_LINE);
 }
 void TOF_updateLinesSummary(int *lineSummary,enum TOF_LINE_STATUS lineStatus){
-    /*for (int i=0;i<TOF_N_LINE_STATUS;i++){
+    for (int i=0;i<TOF_N_LINE_STATUS;i++){
         if (lineStatus%2)lineSummary[i]++;
         lineStatus=lineStatus>>1;
-    }*/
-        if (lineStatus&TOF_VALID_LINE)lineSummary[0]++;
-        if ((lineStatus)&TOF_MISSING_ID) lineSummary[1]++;
-        if ((lineStatus)&TOF_MISSING_FIRST_NAME) lineSummary[2]++;
-        if ((lineStatus)&TOF_MISSING_LAST_NAME) lineSummary[3]++;
-        if ((lineStatus)&TOF_MISSING_BIRTH_DATE) lineSummary[4]++;
-        if ((lineStatus)&TOF_MISSING_BIRTH_CITY) lineSummary[5]++;
+    }
 }
 int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile)
 {
@@ -420,7 +417,7 @@ void TOF_printFile(TOF_FILE *f){
         printf("block %d=========%d \n",i,buffer.NR);
         for (int j=0;j<buffer.NR;j++){
             s=buffer.data[j];
-            if(j>0 && s.id<buffer.data[j-1].id)printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
+            printf("%d|%s|%s|%.10s|%s\n",s.id,s.firstName,s.lastName,s.birthDate,s.birthCity);
         }
     }
     fprintf(stderr,"done");
@@ -438,7 +435,7 @@ if (!found) return false; //NOT FOUND
 TOF_readBlock(f,i,&buffer);
 buffer.del[j]=true;
 buffer.ND++;
-buffer.NR--;
+// buffer.NR--;
 TOF_writeBlock(f,i,&buffer);
 return true;
 }
@@ -481,7 +478,7 @@ if ((tof==NULL)||(list==NULL))  return;
  
     }
     header.ND+=numberDeleted;
-    header.NR-=numberDeleted;
+    // header.NR-=numberDeleted;
     TOF_setHeader(tof,&header);
     int LoadingFactor=(header.NR-header.ND)/header.NB;
     TOF_deleteWriteSummaryToLog(logFile,TotalReads,TotalWrites,LoadingFactor,numberDeleted,numberNotFound); 

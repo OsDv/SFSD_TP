@@ -10101,13 +10101,13 @@
 ///////////			THE SUMMARY			///////////
 	1) FILE INFORMATIONS :
 file name:"./result/Students_Infos.TOF"
-created on : 21-12-2024 20:56:30
+created on : 21-12-2024 23:02:48
 number of blocks: 167 block
 number of records inserted: 10000
 file loading factor: 59 %
 fragmented space: 886249 Byte
 	2) INSERTION LOG :
-total read operation: 476219
+total read  operation: 476219
 total write operation: 423747
 	2) SOURCE LOG :
 number of valid line: 8103
@@ -10116,5 +10116,6 @@ number of lines missing first name: 525
 number of lines missing last name: 504
 number of lines missing birth date: 515
 number of lines missing birth city : 521
+number of EMPTY lines : 0
 number of duplicates id: 100
 total lines: 10100

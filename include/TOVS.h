@@ -35,9 +35,9 @@ typedef struct {
     TOVS_Header header;
 } TOVS_FILE;
 
-enum LineStatus {VALID_LINE , LINE_MISSING_ID , LINE_MISSING_DESCRIPTION ,LINE_MISSING_YEAR,EMPTY_LINE}; 
+enum LineStatus {VALID_LINE=1 , LINE_MISSING_ID=2 , LINE_MISSING_DESCRIPTION=4 ,LINE_MISSING_YEAR=8,EMPTY_LINE=16}; 
 #define N_LINE_STATUS 5 // number of possible cases for lineStatus
-enum InsertStatus {INSERT_SUCCUSFUL , RECORD_EXISTS , INSERT_SUCCUSFUL_STRUDLE};
+enum InsertStatus {INSERT_SUCCUSFUL , RECORD_EXISTS , NOT_INSERTED};
 #define N_INSERT_STATUS 3 // number of possible cases for inserStatus
 
 // global variables to count number of read/writes for each insertion/deletion
@@ -82,4 +82,5 @@ bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size);
 void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log);
 void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound);
 void TOVS_writeLineTodeleteLog(FILE *log ,int id,bool status);
+void TOVS_updateLinesSummary(int *summary,enum LineStatus status);
 #endif
