@@ -480,7 +480,7 @@ if ((tof==NULL)||(list==NULL))  return;
     header.ND+=numberDeleted;
     // header.NR-=numberDeleted;
     TOF_setHeader(tof,&header);
-    int LoadingFactor=(header.NR-header.ND)/header.NB;
+    int LoadingFactor=((header.NR-header.ND)/header.NB)*100/MAX_RECORDS;
     TOF_deleteWriteSummaryToLog(logFile,TotalReads,TotalWrites,LoadingFactor,numberDeleted,numberNotFound); 
     TOF_NUMBER_OF_READS=TotalReads;
     TOF_NUMBER_OF_WRITES=TotalWrites;

@@ -328,9 +328,10 @@ enum LineStatus checkValidLine(char *line){
     int year,zero,n;
     n=sscanf(&(line[index]),"%d.%d",&year,&zero);
     if (year<1 || year>5 || zero!=0 || n!=2) status|= LINE_MISSING_YEAR;
+    else index+=3;
     // check if the description string (skills) is not empty else the line considred invalide
 
-    index+=4;
+    index++;
     if (line[index]=='\n' || line[index]=='\0') status|= LINE_MISSING_DESCRIPTION;
     // the line passes all the test then it is valide 
     if (status==0) status=VALID_LINE;
@@ -397,14 +398,14 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
         fprintf(f,"- %*d | NOT-INSERTED | DUPLICAT | %*dR %*dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_READS,PRINT_N_RW_WIDTH,TOVS_NUMBER_OF_WRITES);
         return;
     }
-    if (insertS==NOT_INSERTED)fprintf(f,"- %*d | NOT-INSERTED | ",lineNumber);
-    else fprintf(f,"+ %*d | INSERTED | ",lineNumber);
+    if (insertS==NOT_INSERTED)fprintf(f,"- %5d | NOT-INSERTED | ",lineNumber);
+    else fprintf(f,"+ %5d | INSERTED | ",lineNumber);
     if (lineS==VALID_LINE) fprintf(f,"VALID_LINE | ");
     else {
         fprintf(f,"MISSING: ");
         if (lineS&LINE_MISSING_ID)fprintf(f,"ID ");
         if (lineS&LINE_MISSING_DESCRIPTION)fprintf(f,"DESCRIPTION ");
-        if (lineS&LINE_MISSING_YEAR,EMPTY_LINE)fprintf(f,"EMPTY_LINE ");
+        if (lineS&LINE_MISSING_YEAR)fprintf(f,"STUDYING_YEAR ");
     }
     fprintf(f,"| %4dR %4dW\n",TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
     
@@ -421,6 +422,7 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
             systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
     fprintf(f,"file size:%d byte of characters + %d byte header size\n",header.NB*MAX_CHARS_TOVS+header.NC,TOVS_HEADER_SIZE);
     fprintf(f,"number of blocks: %d block\n",header.NB);
+    fprintf(f,"fragmented space : %d Byte\n",MAX_CHARS_TOVS-header.NC);
     // insertion log
     fputs("\t2) INSERTION LOG :\n",f);
     fprintf(f,"number of inserted records: %d \n",inserSummary[INSERT_SUCCUSFUL]);
@@ -545,6 +547,8 @@ void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log){
     int numberDeleted=0,numberNotFound=0;
     int size,fragmentedSpace=0;
     int line=0;
+    TOVS_Header header;
+    TOVS_getHeader(src,&header);
     while((fgets(buffer,MAX_LINE_SIZE,toDelete))!=NULL){
         sscanf(buffer,"%d",&id);
         TOVS_NUMBER_OF_READS=0;
@@ -561,13 +565,13 @@ void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log){
         totalRead+=TOVS_NUMBER_OF_READS;
         totalWrite+=TOVS_NUMBER_OF_WRITES;
     }
-    TOVS_deleteWriteSummaryToLog(log,totalRead,totalWrite,fragmentedSpace,numberDeleted,numberNotFound);
+    TOVS_deleteWriteSummaryToLog(log,totalRead,totalWrite,fragmentedSpace,numberDeleted,numberNotFound,header.NC);
 }
-void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound){
+void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound,int NC){
     fputs("\n====\tDelete Summary\t====\n",log);
     fprintf(log,"Total deleted: %d\n",deleted);
     fprintf(log,"Total not found: %d\n",notFound);
-    fprintf(log,"Fragmented space made: %d\n",fragmented);
+    fprintf(log,"Fragmented space made: %d\n",fragmented+(MAX_CHARS_TOVS-NC));
     fprintf(log,"Total reads %d\twrites %d",totalR,totalW);
 }
 void TOVS_writeLineTodeleteLog(FILE *log ,int id,bool status){

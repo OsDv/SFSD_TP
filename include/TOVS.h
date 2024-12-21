@@ -80,7 +80,7 @@ bool TOVS_isDeleted(TOVS_Buffer buffer , TOVS_Buffer buffer1 , int j);
 void TOVS_delete(TOVS_FILE *file ,TOVS_Buffer *buffer , TOVS_Buffer *buffer1,int j);
 bool TOVS_deleteById(TOVS_FILE *file ,int id,int *size);
 void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log);
-void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound);
+void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound,int NC);
 void TOVS_writeLineTodeleteLog(FILE *log ,int id,bool status);
 void TOVS_updateLinesSummary(int *summary,enum LineStatus status);
 #endif
