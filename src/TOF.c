@@ -1,7 +1,7 @@
 #include <TOF.h>
 #include <windows.h>
 
-TOF_SI_BirthDate BirthDateIndex;
+TOF_SI_BirthDate BirthDateIndex={0};
 TOF_PI_ID TOF_primaryIndex[10000];
 int primaryIndexSize;
 int TOF_NUMBER_OF_READS=0;
@@ -586,6 +586,14 @@ void TOF_insertSIonBirthDate(TOF_SI_BirthDate *index,char *date ,int id ){
 
 }
 void TOF_creatSIonBirthDate(TOF_FILE *file ,TOF_SI_BirthDate *dest){
+    if (dest->size!=0){
+        TOF_SI_BirthDate_LIST *list;
+        for(int i=0;i<dest->size;i++){
+            list=dest->tab[i].list;
+            dest->tab[i].list=dest->tab[i].list->next;
+            free(list);
+        }
+    }
     TOF_Header header;
     TOF_getHeader(file,&header);
     TOF_Buffer buffer;
@@ -635,16 +643,37 @@ void TOF_transformToArraySIonBirthDate(TOF_SI_BirthDate *index,TOF_SI_BirthDate_
             id_array[j]=list->id;
             list=list->next;
         }
+        dest[i].id_array=id_array;
     }
 }
 void TOF_saveSIonBirthDate(TOF_SI_BirthDate *index,FILE *file){
-    TOF_SI_BirthDate_file *arrayOfIndex=malloc(sizeof(arrayOfIndex)*(index->size));
+    TOF_SI_BirthDate_file *arrayOfIndex=malloc(sizeof(TOF_SI_BirthDate_file)*(index->size));
     TOF_transformToArraySIonBirthDate(index,arrayOfIndex);
-    for(int i=0;i++;i<index->size){
+    fwrite(&(index->size),sizeof(int),1,file);
+    for(int i=0;i<index->size;i++){
         fwrite(arrayOfIndex[i].date,DATE_SIZE,1,file);
         fwrite(&(arrayOfIndex[i].n),sizeof(int),1,file);
         fwrite(arrayOfIndex[i].id_array,sizeof(int),arrayOfIndex[i].n,file);
+        free(arrayOfIndex[i].id_array);
     }
+    free(arrayOfIndex);
+}
+void TOF_loadSIonBirthDate(TOF_SI_BirthDate *index,FILE *file){
+    fread(&(index->size),sizeof(int),1,file);
+    int n;
+    TOF_SI_BirthDate_LIST *list;
+    for(int i=0;i<index->size;i++){
+        showProgressBar(i,index->size-1);
+        fread(index->tab[i].birthDate,DATE_SIZE,1,file);
+        fread(&n,sizeof(int),1,file);
+        index->tab[i].list=NULL;
+        for (int j=0;j<n;j++){
+            list=malloc(sizeof(TOF_SI_BirthDate_LIST));
+            fread(&(list->id),sizeof(int),1,file);
+            list->next=index->tab[i].list;
+            index->tab[i].list=list;
+        }
+    }    
 }
 void TOF_creatPrimaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab )
 {
@@ -672,7 +701,13 @@ for ( i=1; i <= header.NB; i++)
  }
 }
 (*size)=index;
+fwrite(&index,sizeof(int),1,dest);
 fwrite(tab,sizeof(TOF_PI_ID),10000,dest);
+}
+void TOF_loadPrimaryIndex(FILE *src ,TOF_PI_ID *tab){
+    if (tab==NULL || src==NULL) return;
+    fread(&primaryIndexSize,sizeof(int),1,src);
+    fread(tab,sizeof(TOF_PI_ID),10000,src);
 }
 void TOF_searchPrimaryIndex(int id , int *block){
     int inf =0;

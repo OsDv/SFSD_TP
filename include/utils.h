@@ -22,4 +22,5 @@ void creatTOF_SIBirthDate();
 void TOF_BirthDateQueryMenu();
 void TOFdeleteSelected();
 void PrintFilesInfos();
+void TOF_loadIndexes();
 #endif

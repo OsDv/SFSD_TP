@@ -123,6 +123,8 @@ void TOF_creatPrimaryIndex(TOF_FILE *f, FILE*dest,int* size,TOF_PI_ID *tab );
 void TOF_BirthDateIntervalQuery(TOF_FILE *tof , TOF_PI_ID *pIndex , TOF_SI_BirthDate *sIndex,char* inf,char* sup);
 void TOF_searchPrimaryIndex(int id , int *block);
 void TOF_searchInterBlock(TOF_Buffer buffer ,int id ,int *pos, bool *found);
+void TOF_loadPrimaryIndex(FILE *src ,TOF_PI_ID *tab);
+void TOF_loadSIonBirthDate(TOF_SI_BirthDate *index,FILE *file);
 #endif
 /*
 

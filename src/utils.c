@@ -8,10 +8,11 @@ void printMenu() {
     printf("2. Create TOVS file\n");
     printf("3. Delete selected records TOF\n");
     printf("4. Delete selected records TOVS\n");
-    printf("5. Create TOF indexes (primary/BirthDate)\n");
+    printf("5. Create/Update TOF indexes (primary/BirthDate)\n");
     printf("6. search interval by BirthDate\n");
     printf("7. Information about the files (TOVS)\n");
     printf("8. Get Student Infos\n");
+    printf("9. Load TOF indexes\n");
     printf("0. Exit\n");
     printf("Enter your choice: ");
 }
@@ -131,10 +132,13 @@ void creatTOF_SIBirthDate(){
     printf("Secondary Index created succusfully \n");
     // TOF_printSIonBirthDate(&BirthDateIndex);
     TOF_close(&tof);
+    FILE *save=fopen(TOF_SI_BirthDate_FILE_NAME,"wb");
+    TOF_saveSIonBirthDate(&BirthDateIndex,save);
+    fclose(save);
 }
 void creatTOF_primaryIndex(){
     TOF_FILE tof;
-    FILE *file=fopen("TOF.index","wb");
+    FILE *file=fopen(TOF_PRIMARY_INDEX_FILE_NAME,"wb");
     TOF_open(TOF_FILE_NAME,&tof,'r');
     if (tof.file==NULL){
         printf("cant open file tof\n");
@@ -207,4 +211,18 @@ void PrintFilesInfos(){
     printf("Number of Characters in last Block: %d",tovsHeader.NC);
     TOF_close(&tof);
     TOVS_close(&tovs);
+}
+void TOF_loadIndexes(){
+    FILE *Pindex,*Sindex;
+    Pindex = fopen(TOF_PRIMARY_INDEX_FILE_NAME,"rb");
+    Sindex = fopen(TOF_SI_BirthDate_FILE_NAME,"rb");
+    if (Pindex==NULL || Sindex==NULL){
+        printf("can't open index files..\n");
+        return;
+    }
+    TOF_loadPrimaryIndex(Pindex,TOF_primaryIndex);
+    TOF_loadSIonBirthDate(&BirthDateIndex,Sindex);
+    fclose(Pindex);
+    fclose(Sindex);
+    printf("Indexes loaded succusfuly..\n");
 }

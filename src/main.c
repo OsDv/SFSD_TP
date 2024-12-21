@@ -31,7 +31,7 @@ int main() {
                 TOVSDeleteFromFile();
                 break;
             case 5:
-                printf("Creating indexes for TOF (primary/BirthDate)...\n");
+                printf("Creating/Update indexes for TOF (primary/BirthDate)...\n");
                 creatTOF_primaryIndex();
                 creatTOF_SIBirthDate();
                 break;
@@ -44,6 +44,9 @@ int main() {
                 // Add function call for displaying file information
                 break;
             case 8:printStudentInfosMenu();
+                break;
+            case 9:
+                TOF_loadIndexes();
                 break;
             case 0:
                 printf("Exiting the program...\n");
