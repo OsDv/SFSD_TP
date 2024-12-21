@@ -10,7 +10,7 @@ void printMenu() {
     printf("4. Delete selected records TOVS\n");
     printf("5. Create TOF indexes (primary/BirthDate)\n");
     printf("6. search interval by BirthDate\n");
-    printf("7. Information about the files\n");
+    printf("7. Information about the files (TOVS)\n");
     printf("8. Get Student Infos\n");
     printf("0. Exit\n");
     printf("Enter your choice: ");
@@ -30,6 +30,8 @@ bool CreatTOFMenu(){
     TOF_open(TOF_FILE_NAME , &TOF_file , 'n');
     int status = (TOF_createFile(&TOF_file , csv , TOF_log));
     TOF_close(&TOF_file);
+    fclose(TOF_log);
+    fclose(csv);
     if (status==0)printf("\nDone files created!\n");
     else printf("\nerror creating files try again\n");
 }
@@ -79,8 +81,9 @@ void printStudentInfosMenu(){
         printf("Id doesn't exists \n");
         return;
     }
-    TOVS_getElement(&tovs,buffer,i,j);
-    TOVS_printStudentInfos(buffer);
+    int size;
+    TOVS_getElement(&tovs,buffer,&size,i,j);
+    TOVS_printStudentInfos(buffer,size);
     TOVS_close(&tovs);
 }
 
@@ -89,10 +92,16 @@ void checkStatus(){
     TOVS_FILE tovs;
     FILE *tofLog,*tovsLog;
     TOF_open(TOF_FILE_NAME,&tof,'r');
-    if (TOF_getFile(&tof)!=NULL) printf("TOF  file: %s\n",TOF_FILE_NAME);
+    if (TOF_getFile(&tof)!=NULL) {
+        printf("TOF  file: %s\n",TOF_FILE_NAME);
+        TOF_close(&tof);
+    }
     else printf("TOF file: NOT-Found\n");
     TOVS_open(TOVS_FILE_NAME,&tovs,'r');
-    if (TOVS_getFile(&tovs)!=NULL) printf("TOVS file: %s\n",TOVS_FILE_NAME);
+    if (TOVS_getFile(&tovs)!=NULL) {
+        printf("TOVS file: %s\n",TOVS_FILE_NAME);
+        TOVS_close(&tovs);
+    }
     else printf("TOVS file: NOT-Found\n");
 
 }
@@ -106,6 +115,9 @@ void TOVSDeleteFromFile(){
         return;
     }
     TOVS_deleteFromFile(&tovs,deleteFiel,log);
+    fclose(deleteFiel);
+    fclose(log);
+    TOVS_close(&tovs);
     printf("\nDelete End...\n");
 }
 void creatTOF_SIBirthDate(){
@@ -192,4 +204,7 @@ void PrintFilesInfos(){
     printf("Loading factor: %.2f\n",(float)((tofHeader.NR-tofHeader.ND)/tofHeader.NB));
     printf("TOVS INFOS:\n");
     printf("Number of blocks: %d\n",tovsHeader.NB);
+    printf("Number of Characters in last Block: %d",tovsHeader.NC);
+    TOF_close(&tof);
+    TOVS_close(&tovs);
 }

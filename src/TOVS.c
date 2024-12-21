@@ -255,8 +255,8 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
     TOF_search(tof,atoi(idStr),&found,&block,&offset,&student);
     int j=0;
     while(src[j]!='\n' && src[j]!='\0')j++;
-    j=j-4+3;// -4 two sepratort and .0 , +3 for size ,  +1 deleteFlag size width
-    if (lineStat==LINE_MISSING_YEAR) j+=2;
+    j=j-4+3;// -4 two sepratort and .0 , +3 for size ,  
+    if (lineStat==LINE_MISSING_YEAR) j+=3;
     int descLen=j-(TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH);
     int fNameLen,lNameLen,bCityLen;
     bool bDate;
@@ -308,7 +308,9 @@ int TOVS_lineToString(char *src ,TOF_FILE *tof, char *dest ,enum LineStatus line
         index+=4;
     }
     // TOVS_RECORDS_id_WIDTH+TOVS_RECORDS_SIZE_WIDTH+TOVS_YEAR_WIDTH
-    for(int i=0;i<descLen;i++) dest[i+index]=src[i+10];
+    int start=10;
+    if (lineStat==LINE_MISSING_YEAR)start=7;
+    for(int i=0;i<descLen;i++) dest[i+index]=src[i+start];
 }
 
 enum LineStatus checkValidLine(char *line){
@@ -386,8 +388,6 @@ int TOVS_createFile(TOVS_FILE *dest ,TOF_FILE *tof, FILE *src , FILE *logFile){
     }
     TOVS_getHeader(dest,&header);
     TOVS_writeLogSummary(logFile,header,insertSummary,linesStatusSummary);
-
-    
 }
 
 void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , enum LineStatus lineS){
@@ -411,14 +411,14 @@ void TOVS_writeLineToLog(FILE *f , int lineNumber , enum InsertStatus insertS , 
             break;
         
         case LINE_MISSING_DESCRIPTION   :
-            fprintf(f,"*%*d:NOT-INSERTED:MISSING-DESCRIPTION:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);            
+            fprintf(f,"*%*d:INSERTED:MISSING-DESCRIPTION:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);            
             break;
         
         case LINE_MISSING_ID:
             fprintf(f,"*%*d:NOT-INSERTED:MISSING-ID:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
             break;
         case LINE_MISSING_YEAR:
-            fprintf(f,"*%*d:NOT-INSERTED:MISSING-YEAR:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
+            fprintf(f,"*%*d:INSERTED:MISSING-YEAR:%5dR %5dW\n",PRINT_LINE_NUMBER_WIDTH,lineNumber,TOVS_NUMBER_OF_READS,TOVS_NUMBER_OF_WRITES);
             break;
         
         default:
@@ -454,15 +454,15 @@ void TOVS_writeLogSummary(FILE *f ,TOVS_Header header , int *inserSummary,int *l
     
 
 }
-void TOVS_getElement(TOVS_FILE *f , char *dest , int block , int offset){
+void TOVS_getElement(TOVS_FILE *f , char *dest ,int *size, int block , int offset){
     TOVS_Header header;
     TOVS_Buffer buffer,buffer1;
     TOVS_getHeader(f,&header);
     if (block>header.NB) return ;//block doesnt exist
     TOVS_readBlock(f,block,&buffer);
     if (block+1<=header.NB) TOVS_readBlock(f,block+1,&buffer1);
-    int size=TOVS_getSize(buffer,buffer1,offset);
-    for (int i=0;i<size;i++){
+    *size=TOVS_getSize(buffer,buffer1,offset);
+    for (int i=0;i<*size;i++){
         if(offset>=MAX_CHARS_TOVS){
             offset-=MAX_CHARS_TOVS;
             if (block+1<=header.NB)buffer=buffer1;
@@ -481,7 +481,7 @@ void TOVS_getLname(char *src){
     }
 }
 
-void TOVS_printStudentInfos(char *src){
+void TOVS_printStudentInfos(char *src ,int size){
     // size delete id    year   fname lname city date desc
     // 0-2    3     4-8  9      10-$   $       $   $   
     printf("\tID: %.*s\n",TOVS_RECORDS_id_WIDTH,&(src[4]));
@@ -499,8 +499,15 @@ void TOVS_printStudentInfos(char *src){
     while(src[start+(len++)]!=TOVS_SEPARATOR);
     printf("\tBirth's City: %.*s\n",len-1,&(src[start]));
     start=start+len;
-    if (src[start]!='$')printf("\tBirth's Date: %.*s\n",DATE_SIZE,&(src[start]));
-    else printf("\tBirth's Date: unknown\n");
+    if (src[start]!='$'){
+        printf("\tBirth's Date: %.*s\n",DATE_SIZE,&(src[start]));
+        start+=DATE_SIZE+1;
+    }
+    else {
+        printf("\tBirth's Date: unknown\n");
+        start+=2;
+    }
+    printf("Skills : %.*s",size-start,&(src[start]));
 
 }
 int printFile(TOVS_FILE f){
@@ -570,6 +577,7 @@ void TOVS_deleteFromFile(TOVS_FILE *src , FILE *toDelete , FILE *log){
         totalRead+=TOVS_NUMBER_OF_READS;
         totalWrite+=TOVS_NUMBER_OF_WRITES;
     }
+    TOVS_deleteWriteSummaryToLog(log,totalRead,totalWrite,fragmentedSpace,numberDeleted,numberNotFound);
 }
 void TOVS_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int fragmented,int deleted,int notFound){
     fputs("\n====\tDelete Summary\t====\n",log);

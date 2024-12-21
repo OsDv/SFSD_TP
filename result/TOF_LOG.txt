@@ -10101,7 +10101,7 @@
 ///////////			THE SUMMARY			///////////
 	1) FILE INFORMATIONS :
 file name:"./result/Students_Infos.TOF"
-created on : 20-11-0124 20:37:43
+created on : 20-12-2024 21:42:36
 number of blocks: 167 block
 number of records inserted: 10000
 file loading factor: 59 %

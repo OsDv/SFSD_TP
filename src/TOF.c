@@ -1,10 +1,9 @@
 #include <TOF.h>
-#include <time.h>
+#include <windows.h>
 
 TOF_SI_BirthDate BirthDateIndex;
 TOF_PI_ID TOF_primaryIndex[10000];
 int primaryIndexSize;
-struct tm theTime;
 int TOF_NUMBER_OF_READS=0;
 int TOF_NUMBER_OF_WRITES=0;
 int TOF_open(const char *name , TOF_FILE *file , char mode){
@@ -281,9 +280,10 @@ void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int frag
     // created file informations
     fputs("\t1) FILE INFORMATIONS :\n",f);
     fprintf(f,"file name:\"%s\"\n",TOF_FILE_NAME);
-    _getsystime(&theTime);
-    fprintf(f,"created on : %02d-%02d-%04d %02d:%02d:%02d\n",theTime.tm_mday, theTime.tm_mon, theTime.tm_year, 
-            theTime.tm_hour, theTime.tm_min, theTime.tm_sec);
+    SYSTEMTIME systemTime;
+    GetSystemTime(&systemTime);
+    fprintf(f,"created on : %02d-%02d-%04d %02d:%02d:%02d\n",systemTime.wDay, systemTime.wMonth, systemTime.wYear, 
+            systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
     fprintf(f,"number of blocks: %d block\n",header.NB);
     fprintf(f,"number of records inserted: %d\n",header.NR);
     fprintf(f,"file loading factor: %d %%\n",header.NR*100/(header.NB*MAX_RECORDS));
