@@ -127,16 +127,3 @@ void TOF_searchInterBlock(TOF_Buffer buffer ,int id ,int *pos, bool *found);
 void TOF_loadPrimaryIndex(FILE *src ,TOF_PI_ID *tab);
 void TOF_loadSIonBirthDate(TOF_SI_BirthDate *index,FILE *file);
 #endif
-/*
-
-
-parcourir les line 
-transforme lines to rec"TOF_LineToRec" and indicate its status
-if ValidLine insert the rec in file "TOF_Insertion"
- WriteLineToLog
-
-
-
-
-
-*/
