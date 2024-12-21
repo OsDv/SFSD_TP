@@ -240,37 +240,30 @@ enum TOF_INSERT_STATUS insertElement(TOF_FILE *f, Student e) {
 }
 
 void TOF_writeLineToLog(FILE *f , int lineNumber , enum TOF_LINE_STATUS lineS , enum TOF_INSERT_STATUS insertS){
-    if (insertS==TOF_INSERT_SUCCUSFUL){
-        switch (lineS)
-        {
-        case TOF_EMPTY_LINE:
-            fprintf(f,"+%*d:INSERTED:EMPTY-LINE:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        
-        case TOF_VALID_LINE:
-            fprintf(f,"+%*d:INSERTED:VALIDE_LINE:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        case TOF_MISSING_BIRTH_CITY:
-            fprintf(f,"+%*d:INSERTED:MISSING_BIRTH_CITY:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        case TOF_MISSING_FIRST_NAME:
-            fprintf(f,"+%*d:INSERTED:MISSING_FIRST_NAME:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        case TOF_MISSING_LAST_NAME:
-            fprintf(f,"+%*d:INSERTED:MISSING_LAST_NAME:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        case TOF_MISSING_BIRTH_DATE:
-            fprintf(f,"+%*d:INSERTED:MISSING_BIRTH_DATE:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-            break;
-        
-        default:
-            break;
-        }
-    } else {
-        if (lineS==TOF_MISSING_ID)fprintf(f,"*%*d:NOT-INSERTED:MISSING_ID:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-        else fprintf(f,"*%*d:NOT-INSERTED:DUPLICATE:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
-
+    if (insertS==TOF_RECORD_EXISTS){
+        fprintf(f,"- %*d | NOT-INSERTED | DUPLICAT | %4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
+        return;
     }
+    if (insertS==TOF_NOT_INSERTED){
+        if (lineS==TOF_EMPTY_LINE) {
+            fprintf(f,"-%*d | NOT-INSERTED | EMPTY-LINE | %4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
+            return;
+        }
+        else fprintf(f,"- %*d | NOT-INSERTED | ",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber);//:%4dR %4dW\n",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber,TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
+    } else {
+        fprintf(f,"+ %*d | INSERTED | ",TOF_PRINT_LINE_NUMBER_WIDTH,lineNumber);        
+    }
+    if (lineS==TOF_VALID_LINE)fprintf(f,"VALID LINE ");
+    else {
+        fprintf(f,"MISSING: ");
+        if (lineS&TOF_MISSING_ID)fprintf(f,"ID ");
+        if (lineS&TOF_MISSING_FIRST_NAME)fprintf(f,"FIRST_NAME ");
+        if (lineS&TOF_MISSING_LAST_NAME)fprintf(f,"LAST_NAME ");
+        if (lineS&TOF_MISSING_BIRTH_DATE)fprintf(f,"BIRTH_DATE ");
+        if (lineS&TOF_MISSING_BIRTH_CITY)fprintf(f,"BIRTH_CITY ");
+    }
+    fprintf(f,"| %4dR %4dW\n",TOF_NUMBER_OF_READS,TOF_NUMBER_OF_WRITES);
+    
 }
 
 void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int fragment, int *lineStat , int *insertStat ){
@@ -294,15 +287,15 @@ void TOF_writeSummaryToLog(FILE *f,TOF_FILE *tof,int Totalr,int Totalw ,int frag
     fprintf(f,"total write operation: %d\n",Totalw);
     // source file status
     fputs("\t2) SOURCE LOG :\n",f);
-    fprintf(f,"number of valid line: %d\n",lineStat[TOF_VALID_LINE]);
-    fprintf(f,"number of lines missing id: %d\n",lineStat[TOF_MISSING_ID]);
-    fprintf(f,"number of lines missing first name: %d\n",lineStat[TOF_MISSING_FIRST_NAME]);
-    fprintf(f,"number of lines missing last name: %d\n",lineStat[TOF_MISSING_LAST_NAME]);
-    fprintf(f,"number of lines missing birth date: %d\n",lineStat[TOF_MISSING_BIRTH_DATE]);    
-    fprintf(f,"number of lines missing birth city : %d\n",lineStat[TOF_MISSING_BIRTH_CITY]) ;       
+    fprintf(f,"number of valid line: %d\n",lineStat[(int)log2(TOF_VALID_LINE)]);
+    fprintf(f,"number of lines missing id: %d\n",lineStat[(int)log2(TOF_MISSING_ID)]);
+    fprintf(f,"number of lines missing first name: %d\n",lineStat[(int)log2(TOF_MISSING_FIRST_NAME)]);
+    fprintf(f,"number of lines missing last name: %d\n",lineStat[(int)log2(TOF_MISSING_LAST_NAME)]);
+    fprintf(f,"number of lines missing birth date: %d\n",lineStat[(int)log2(TOF_MISSING_BIRTH_DATE)]);    
+    fprintf(f,"number of lines missing birth city : %d\n",lineStat[(int)log2(TOF_MISSING_BIRTH_CITY)]) ;       
     fprintf(f,"number of duplicates id: %d\n",insertStat[TOF_RECORD_EXISTS]);
     int sum=0 ;
-    for (int i =0;i<TOF_N_LINE_STATUS;i++)sum+=lineStat[i];
+    for (int i =0;i<TOF_N_INSERT_STATUS;i++)sum+=insertStat[i];
     fprintf(f,"total lines: %d",sum);
 
 }
@@ -338,27 +331,38 @@ int TOF_recordFragmentedSpace(Student s){
 }
 void TOF_LineToRecord(char* line,Student* student,enum TOF_LINE_STATUS *LineStatus)
 {
-   
-     char fields[NUM_FIELDS][MAX_FIELD_LENGTH];
-     parseLine(line,fields);
-    
-        student->id=atoi(fields[0]);
-        strcpy(student->firstName,fields[1]);
-        strcpy(student->lastName,fields[2]);
-        strcpy(student->birthDate,fields[3]);
-        strcpy(student->birthCity,fields[4]);
-        (*LineStatus)=TOF_VALID_LINE;
-      if (student->id==0) (*LineStatus)=TOF_MISSING_ID;
-      if (strcmp(student->firstName,"")==0) (*LineStatus) = TOF_MISSING_FIRST_NAME;
-      if (strcmp(student->lastName,"")==0) (*LineStatus) = TOF_MISSING_LAST_NAME;
-      if (strcmp(student->birthDate,"")==0) (*LineStatus) = TOF_MISSING_BIRTH_DATE;
-      if (strcmp(student->birthCity,"")==0) (*LineStatus) = TOF_MISSING_BIRTH_CITY;
-      if(!((*LineStatus)==TOF_MISSING_ID||(*LineStatus)==TOF_MISSING_FIRST_NAME||(*LineStatus)==TOF_MISSING_LAST_NAME||(*LineStatus)==TOF_MISSING_BIRTH_DATE||(*LineStatus)==TOF_MISSING_BIRTH_CITY))
-      (*LineStatus)=TOF_VALID_LINE;
-
-
+    (*LineStatus)=0;
+    if (*line=='\0'||*line=='\n'){
+        (*LineStatus)=TOF_EMPTY_LINE;
+        return;
+    }
+    char fields[NUM_FIELDS][MAX_FIELD_LENGTH];
+    parseLine(line,fields);
+    student->id=atoi(fields[0]);
+    strcpy(student->firstName,fields[1]);
+    strcpy(student->lastName,fields[2]);
+    strcpy(student->birthDate,fields[3]);
+    strcpy(student->birthCity,fields[4]);
+    (*LineStatus)=TOF_VALID_LINE;
+    if (student->id==0) (*LineStatus)|=TOF_MISSING_ID;
+    if (strcmp(student->firstName,"")==0) (*LineStatus) |= TOF_MISSING_FIRST_NAME;
+    if (strcmp(student->lastName,"")==0) (*LineStatus) |= TOF_MISSING_LAST_NAME;
+    if (strcmp(student->birthDate,"")==0) (*LineStatus) |= TOF_MISSING_BIRTH_DATE;
+    if (strcmp(student->birthCity,"")==0) (*LineStatus) |= TOF_MISSING_BIRTH_CITY;
+    if ((*LineStatus)!=TOF_VALID_LINE) (*LineStatus)&=(~TOF_VALID_LINE);
 }
-
+void TOF_updateLinesSummary(int *lineSummary,enum TOF_LINE_STATUS lineStatus){
+    /*for (int i=0;i<TOF_N_LINE_STATUS;i++){
+        if (lineStatus%2)lineSummary[i]++;
+        lineStatus=lineStatus>>1;
+    }*/
+        if (lineStatus&TOF_VALID_LINE)lineSummary[0]++;
+        if ((lineStatus)&TOF_MISSING_ID) lineSummary[1]++;
+        if ((lineStatus)&TOF_MISSING_FIRST_NAME) lineSummary[2]++;
+        if ((lineStatus)&TOF_MISSING_LAST_NAME) lineSummary[3]++;
+        if ((lineStatus)&TOF_MISSING_BIRTH_DATE) lineSummary[4]++;
+        if ((lineStatus)&TOF_MISSING_BIRTH_CITY) lineSummary[5]++;
+}
 int TOF_createFile(TOF_FILE *dest , FILE *src , FILE *logFile)
 {
 if ((dest==NULL)||(src==NULL)) return -1;
@@ -370,7 +374,6 @@ if ((dest==NULL)||(src==NULL)) return -1;
     int lineNumber=0;
     enum TOF_LINE_STATUS LineStatus;
     Student student;
-    int lol=0;
     // Skip the first line
     fgets(line,MAX_LINE_SIZE, src);
 
@@ -387,16 +390,19 @@ if ((dest==NULL)||(src==NULL)) return -1;
         TOF_NUMBER_OF_READS=0;
         TOF_NUMBER_OF_WRITES=0;
         TOF_LineToRecord(line,&student,&LineStatus);  
-        // insertStatus=insertElement(dest,student);
-        insertStatus = TOF_inserWithLoadingFactor(dest ,student);
-        TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
-        // TOF_printFile(dest);
-        fragmentedSpace+=TOF_recordFragmentedSpace(student);
+        // empty line or missing id
+        if (LineStatus==TOF_EMPTY_LINE || (LineStatus>>1)%2==1){
+            insertStatus=TOF_NOT_INSERTED;
+        } else {
+            insertStatus = TOF_inserWithLoadingFactor(dest ,student);
+        }
         lineNumber++;
+        TOF_writeLineToLog(logFile ,lineNumber,LineStatus,insertStatus);
+        fragmentedSpace+=TOF_recordFragmentedSpace(student);
         showProgressBar(lineNumber,NumberOfLinesCSV1);
         TotalReads+=TOF_NUMBER_OF_READS;
         TotalWrites+=TOF_NUMBER_OF_WRITES;
-        linesSummary[LineStatus]++;
+        if (insertStatus==TOF_INSERT_SUCCUSFUL)TOF_updateLinesSummary(linesSummary,LineStatus);
         insertSummary[insertStatus]++;
     }
     TOF_getHeader(dest,&header);
@@ -477,7 +483,7 @@ if ((tof==NULL)||(list==NULL))  return;
     header.ND+=numberDeleted;
     header.NR-=numberDeleted;
     TOF_setHeader(tof,&header);
-    int LoadingFactor=header.NR*100/(header.NB*MAX_RECORDS);
+    int LoadingFactor=(header.NR-header.ND)/header.NB;
     TOF_deleteWriteSummaryToLog(logFile,TotalReads,TotalWrites,LoadingFactor,numberDeleted,numberNotFound); 
     TOF_NUMBER_OF_READS=TotalReads;
     TOF_NUMBER_OF_WRITES=TotalWrites;

@@ -8,7 +8,7 @@
 #include <lib.h>
 #define MAX_LINE_SIZE 250
 #define TOVS_MAX_ELEMENT_SIZE 400
-#define MAX_CHARS_TOVS 100
+#define MAX_CHARS_TOVS 4096
 #define TOVS_RECORDS_SIZE_WIDTH 3
 #define TOVS_RECORDS_id_WIDTH 5
 #define TOVS_YEAR_WIDTH 1

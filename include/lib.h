@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #define CONFIG_FILE_NAME "./config.config"
 typedef struct ID_L
 {

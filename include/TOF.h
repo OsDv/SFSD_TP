@@ -55,7 +55,7 @@ typedef struct {
 } TOF_Header;
 #define TOF_HEADER_SIZE sizeof(TOF_Header)
 enum TOF_LINE_STATUS {
-	TOF_EMPTY_LINE , TOF_MISSING_ID , TOF_MISSING_FIRST_NAME , TOF_MISSING_LAST_NAME , TOF_MISSING_BIRTH_DATE , TOF_MISSING_BIRTH_CITY , TOF_VALID_LINE
+	TOF_VALID_LINE=1 , TOF_MISSING_ID=2 , TOF_MISSING_FIRST_NAME=4 , TOF_MISSING_LAST_NAME=8 , TOF_MISSING_BIRTH_DATE=16 , TOF_MISSING_BIRTH_CITY=32 ,TOF_EMPTY_LINE=64
 };
 #define TOF_N_LINE_STATUS 7
 
@@ -109,6 +109,7 @@ bool TOF_deleteRecord(TOF_FILE *f,int id) ;
 void TOF_writeLineTodeleteLog(FILE *log ,int id,bool status) ;
 void TOF_deletefromfile(TOF_FILE *tof , FILE *list , FILE *logFile); 
 void TOF_deleteWriteSummaryToLog(FILE *log , int totalR,int totalW,int LF,int deleted,int notFound);
+void TOF_updateLinesSummary(int *lineSummary,enum TOF_LINE_STATUS lineStatus);
 /*
 		TP presenciel
 */
